@@ -1,0 +1,69 @@
+<html lang="en">
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+        <title>Bubble graph</title>
+    </head>
+    <style>
+
+    .svg-container {
+        display: inline-block;
+        position: relative;
+        width: 100%;
+        padding-bottom: 100%;
+        vertical-align: top;
+        overflow: hidden;
+    }
+    .svg-content-responsive {
+        display: inline-block;
+        position: absolute;
+        top: 10px;
+        left: 0;
+    }
+    .root {
+        stroke: #006600;
+        stroke-width: 10px;
+    }
+
+    .node.circle {
+        stroke: #006600;
+        stroke-width: 3px;
+    }
+    .
+
+    .tooltip{
+        display: inline;
+    }
+
+    .tooltip:after{
+        background: rgba(0,0,0,.8);
+        border-radius: 5px;
+        bottom: 26px;
+        color: #fff;
+        content: attr(text);
+        left: 10%;
+        padding: 5px 15px;
+        position: absolute;
+        z-index: 10;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    .tooltip:before{
+        border: solid;
+        border-color: #333 transparent;
+        border-width: 6px 6px 0 6px;
+        bottom: 20px;
+        content: "";
+        left: 10px;
+        position: absolute;
+        z-index: 11;
+    }
+
+    </style>
+    <body>
+        <div id="graph"></div>
+        <script src="./d3.js" charset="utf-8"></script>
+        <script src="./bubble.js" charset="utf-8"></script>
+        
+    </body>
+</html>
