@@ -19,7 +19,7 @@ var tooltip = d3.select("body")
 //read data and create root bubble
 d3.csv("./data/data.csv", function(d) {
     return {
-        id: +d.id,
+        id: d.id,
         labelSpanish: d.labelSpanish,
         labelEnglish : d.labelEnglish,
         color : d.color,
@@ -35,8 +35,9 @@ d3.csv("./data/data.csv", function(d) {
             //create root bubble
             var group = bubble.append("g")
             var circle = group.append("circle");
-            circle.classed("root", true);
-            circle.attr("cx", 600)
+
+            circle.attr("id", function(d) {return d.id})
+                .attr("cx", 600)
                 .attr("cy", 400)
                 .attr("r", function(d) {
                     var r = Math.sqrt(d.size);
@@ -45,6 +46,7 @@ d3.csv("./data/data.csv", function(d) {
                 })
                 .attr("fill", function(d) {return d.color}) 
                 .attr("text", function(d) {return d.fullName})
+                .classed("root", true);
             
             //append spanish label
             group.append("text")
@@ -81,8 +83,8 @@ var drawBubbles = function(svg, uniData, rootId) {
     //load links data
     d3.csv("./data/links.csv", function(d) {
         return {
-            source: +d.source,
-            target: +d.target
+            source: d.source,
+            target: d.target
         };
         }, function(links) {
 
@@ -101,8 +103,8 @@ var drawBubbles = function(svg, uniData, rootId) {
                 circle.classed("node", true);
                 circle.classed("circle", true)
                 circle.attr("id", function(d) {return d.id;})
-                    .attr("cx", 600)
-                    .attr("cy", 400)
+                    .attr("cx", function(d) {return d3.select("[id='" + rootId + "']").attr("cx")})
+                    .attr("cy", function(d) {return d3.select("[id='" + rootId + "']").attr("cy")})
                     .attr("r", function(d) {
 
                         //size depends on the number of students
@@ -117,7 +119,7 @@ var drawBubbles = function(svg, uniData, rootId) {
                     });
 
             //asign click and hover events to the bubbles
-            svg.selectAll("g.node").each(function(){
+            svg.selectAll("g.node").each(function(d,i){
                 var fullName = d3.select(this).select("circle").attr("text");
                 d3.select(this)
                     .on("click", function(d,i){console.log("do something");})
@@ -127,19 +129,20 @@ var drawBubbles = function(svg, uniData, rootId) {
                     })
                     .on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
                     .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
-                
             })
 
             //create lines that connect the bubbles with the root bubble
-            var lines = svg.selectAll("line").data(links).enter().append("line")
-
-                .classed("node", true)
-                .attr("x1", function(d) {return 600 + Math.cos((d.target - 1) * toRadians(slice)) * d3.select("circle.root").attr("r")})
-                .attr("y1", function(d) {return 400 + Math.sin((d.target - 1) * toRadians(slice)) * d3.select("circle.root").attr("r")})
-                .attr("x2", function(d) {return 600 + Math.cos((d.target - 1) * toRadians(slice)) * d3.select("circle.root").attr("r")})
-                .attr("y2", function(d) {return 400 + Math.sin((d.target - 1) * toRadians(slice)) * d3.select("circle.root").attr("r")})
-                .style("stroke", "#006600")
-                .style("stroke-width", "3px");
+            var lines = svg.selectAll("line").data(links).enter().append("line").each(function(d, i){
+                console.log(i);
+                d3.select(this)
+                    .classed("node", true)
+                    .attr("x1", function(d) {return +d3.select("[id='" + rootId + "']").attr("cx") + Math.cos((i+1) * toRadians(slice)) * d3.select("[id='" + d.source + "']").attr("r")})
+                    .attr("y1", function(d) {return +d3.select("[id='" + rootId + "']").attr("cy") + Math.sin((i+1) * toRadians(slice)) * d3.select("[id='" + d.source + "']").attr("r")})
+                    .attr("x2", function(d) {return +d3.select("[id='" + rootId + "']").attr("cx") + Math.cos((i+1) * toRadians(slice)) * d3.select("[id='" + d.target + "']").attr("r")})
+                    .attr("y2", function(d) {return +d3.select("[id='" + rootId + "']").attr("cy") + Math.sin((i+1) * toRadians(slice)) * d3.select("[id='" + d.target + "']").attr("r")})
+                    .style("stroke", "#006600")
+                    .style("stroke-width", "3px");
+            });
 
             //create transitions for the bubbles and lines (move them from the center to their final position)
             d3.transition()
@@ -151,33 +154,35 @@ var drawBubbles = function(svg, uniData, rootId) {
                     var selectLength = function(){return lengths[Math.floor(Math.random() * lengths.length)];};
                     var newX = {};
                     var newY = {};
-                    d3.selectAll("circle.node")
-                        .transition()
+                    d3.selectAll("circle.node").each(function(d, i){
+                        d3.select(this).transition()
 
                         //calculate new positions for the bubbles
                         .attr("cx",function(d) {
-                            var x = 600 + Math.cos((d.id - 1) * toRadians(slice)) * selectLength();
+                            var x = 600 + Math.cos((i+1) * toRadians(slice)) * selectLength();
                             newX[d.id] = x;
                             return x })
                         .attr("cy", function(d) {
-                            var y = 400 + Math.sin((d.id - 1) * toRadians(slice)) * selectLength();
+                            var y = 400 + Math.sin((i+1) * toRadians(slice)) * selectLength();
                             newY[d.id] = y;
                             return y });
+                    });
                     console.log(newX);
-                    d3.selectAll("line")
-                        .transition()
+                    d3.selectAll("line").each(function(d, i){
+                        d3.select(this).transition()
 
                         //calculate end points for the lines
                         .attr("x2", function(d) {
                             var targetCenter = newX[d.target];
-                            var targetRadius = Math.cos((d.target - 1) * toRadians(slice)) * d3.select("[id='" + d.target + "']").attr("r");
+                            var targetRadius = Math.cos((i+1) * toRadians(slice)) * d3.select("[id='" + d.target + "']").attr("r");
                             return targetCenter - targetRadius;
                         })
                         .attr("y2", function(d) {
                             var targetCenter = newY[d.target];
-                            var targetRadius = Math.sin((d.target - 1) * toRadians(slice)) * d3.select("[id='" + d.target + "']").attr("r");
+                            var targetRadius = Math.sin((i+1) * toRadians(slice)) * d3.select("[id='" + d.target + "']").attr("r");
                             return targetCenter - targetRadius;
                         });
+                    });
                 })
 
                 //at the end of the transition append text to the bubbles
