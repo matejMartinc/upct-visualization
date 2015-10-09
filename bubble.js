@@ -118,19 +118,6 @@ var drawBubbles = function(svg, uniData, rootId) {
                         return d.fullName;
                     });
 
-            //asign click and hover events to the bubbles
-            svg.selectAll("g.node").each(function(d,i){
-                var fullName = d3.select(this).select("circle").attr("text");
-                d3.select(this)
-                    .on("click", function(d,i){console.log("do something");})
-                    .on("mouseover", function(){
-                        tooltip.attr("text", fullName);
-                        return tooltip.style("visibility", "visible");
-                    })
-                    .on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
-                    .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
-            })
-
             //create lines that connect the bubbles with the root bubble
             var lines = svg.selectAll("line").data(links).enter().append("line").each(function(d, i){
                 console.log(i);
@@ -192,6 +179,7 @@ var drawBubbles = function(svg, uniData, rootId) {
                         //append text for size
                         d3.select(this).append('text')
                             .classed("node", true)
+                            .classed("size", true)
                             .attr('x', d3.select(this).select("circle").attr("cx"))
                             .attr('y', +d3.select(this).select("circle").attr("cy") + +d3.select(this).select("circle").attr("r")/4)
                             .style('fill', 'white')
@@ -202,15 +190,83 @@ var drawBubbles = function(svg, uniData, rootId) {
                         //append labels
                         d3.select(this).append("text")
                             .classed("node", true)
+                            .classed("label", true)
                             .text(function(d){return d.labelSpanish})
-                            .attr("dx", textPosition(i, data, d3.select(this).select("circle").attr("cx"), d3.select(this).select("circle").attr("cy"), d3.select(this).select("circle").attr("r"))[0])
-                            .attr("dy", textPosition(i, data, d3.select(this).select("circle").attr("cx"), d3.select(this).select("circle").attr("cy"), d3.select(this).select("circle").attr("r"))[1])
+                            .attr("x", textPosition(i, data, d3.select(this).select("circle").attr("cx"), d3.select(this).select("circle").attr("cy"), d3.select(this).select("circle").attr("r"))[0])
+                            .attr("y", textPosition(i, data, d3.select(this).select("circle").attr("cx"), d3.select(this).select("circle").attr("cy"), d3.select(this).select("circle").attr("r"))[1])
                             .style('fill', '#006600')
                             .style("text-anchor", "middle")
                             .style("font-size", "14px");
 
-                        
-                    });
+                        //asign click and hover events to the bubbles
+                        var fullName = d3.select(this).select("circle").attr("text");
+                        var r = d3.select(this).select("circle").attr("r");
+                        var x = d3.select(this).select("circle").attr("cx");
+                        var y = d3.select(this).select("circle").attr("cy");
+                        d3.select(this)
+                            .on("click", function(){console.log("do something");})
+                            .on("mouseover", function(){
+                                if(r < 20) {
+                                    var newX = +x + Math.cos((i+1) * toRadians(slice)) * r;
+                                    var newY = +y + Math.sin((i+1) * toRadians(slice)) * r;
+                                    d3.select(this).select("circle")
+                                        .transition()
+                                        .duration(300)
+                                        .ease("linear")
+                                        .delay(0)
+                                        .attr("r", 2 * r)
+                                        .attr("cx", newX)
+                                        .attr("cy", newY);
+                                    d3.select(this).select("text.label")
+                                        .transition()
+                                        .duration(300)
+                                        .ease("linear")
+                                        .delay(0)
+                                        .attr("x", textPosition(i, data, newX, newY, 2 * r)[0])
+                                        .attr("y", textPosition(i, data, newX, newY, 2 * r)[1]);
+                                    d3.select(this).select("text.size")
+                                        .transition()
+                                        .duration(300)
+                                        .ease("linear")
+                                        .delay(0)
+                                        .attr("x", newX)
+                                        .attr("y", newY + r/2)
+                                        .style("font-size", 2*r/1.1+"px");
+                                    
+                                }
+                                tooltip.attr("text", fullName);
+                                return tooltip.style("visibility", "visible");
+                            })
+                            .on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
+                            .on("mouseout", function(){
+                                if(r < 20) {
+                                    d3.select(this).select("circle")
+                                        .transition()
+                                        .duration(300)
+                                        .ease("linear")
+                                        .delay(0)
+                                        .attr("r", r)
+                                        .attr("cx", x)
+                                        .attr("cy", y);
+                                    d3.select(this).select("text.label")
+                                        .transition()
+                                        .duration(300)
+                                        .ease("linear")
+                                        .delay(0)
+                                        .attr("x", textPosition(i, data, x, y, r)[0])
+                                        .attr("y", textPosition(i, data, x, y, r)[1])
+                                    d3.select(this).select("text.size")
+                                        .transition()
+                                        .duration(300)
+                                        .ease("linear")
+                                        .delay(0)
+                                        .attr("x", +x)
+                                        .attr("y", +y + r/4)
+                                        .style("font-size", r/1.1+"px");   
+                                }
+                                return tooltip.style("visibility", "hidden");
+                            });    
+                        });
                 });
         }
     )        
