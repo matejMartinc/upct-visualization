@@ -17,16 +17,10 @@ var tooltip = d3.select("body")
     .style("visibility", "hidden")
 
 //read data and create root bubble
-d3.csv("./data/data.csv", function(d) {
-    return {
-        id: d.id,
-        labelSpanish: d.labelSpanish,
-        labelEnglish : d.labelEnglish,
-        color : d.color,
-        size: +d.size,
-        fullName: d.fullName
-    };
-    }, function(data) {
+d3.csv("./data/nodes_info.csv", function(data1) {
+    d3.csv("./data/nodes_figures.csv", function(data2) {
+        var data = mergeData(data1, data2)
+        console.log(data);
 
         //execute this after data has loaded
         var bubble = vis.selectAll("circle").data([data[0]])
@@ -45,9 +39,9 @@ d3.csv("./data/data.csv", function(d) {
                     return r;
                 })
                 .attr("fill", function(d) {return d.color}) 
-                .attr("text", function(d) {return d.fullName})
+                .attr("text", function(d) {return d.fullNameSpanish})
                 .classed("root", true);
-            
+                
             //append spanish label
             group.append("text")
                 .text(function(d){return d.labelSpanish})
@@ -73,9 +67,9 @@ d3.csv("./data/data.csv", function(d) {
                     return tooltip.style("visibility", "visible");})
                 .on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
                 .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
-                .on("click", function(d,i){ onRootClick(data, circle, d.id);});
-    }
-);
+                .on("click", function(d){ onRootClick(data, circle, d.id);});
+    });
+});
 
 //function for drawing the bubbles for faculties
 var drawBubbles = function(svg, uniData, rootId) {
@@ -89,7 +83,9 @@ var drawBubbles = function(svg, uniData, rootId) {
         }, function(links) {
 
             //find the faculties
-            var data = findNodes(rootId, links, uniData);
+            var dataAndLinks = findNodesAndLinks(rootId, links, uniData);
+            var data = dataAndLinks[0];
+            var links = dataAndLinks[1];
             
             //divide the circle into parts
             var slice = 360 / data.length;
@@ -108,19 +104,18 @@ var drawBubbles = function(svg, uniData, rootId) {
                     .attr("r", function(d) {
 
                         //size depends on the number of students
-                        var r = Math.sqrt(d.size)*1.3;
+                        var r = Math.sqrt(d.size)*1.2;
                         //rList.push(r);
                         return r;
                     })
                     .attr("fill", function(d) {return d.color;}) 
                     .attr("text", function(d) {
-                        fullName = d.fullName;
-                        return d.fullName;
+                        fullName = d.fullNameSpanish;
+                        return d.fullNameSpanish;
                     });
 
             //create lines that connect the bubbles with the root bubble
             var lines = svg.selectAll("line").data(links).enter().append("line").each(function(d, i){
-                console.log(i);
                 d3.select(this)
                     .classed("node", true)
                     .attr("x1", function(d) {return +d3.select("[id='" + rootId + "']").attr("cx") + Math.cos((i+1) * toRadians(slice)) * d3.select("[id='" + d.source + "']").attr("r")})
@@ -130,7 +125,7 @@ var drawBubbles = function(svg, uniData, rootId) {
                     .style("stroke", "#006600")
                     .style("stroke-width", "3px");
             });
-
+            
             //create transitions for the bubbles and lines (move them from the center to their final position)
             d3.transition()
                 .duration(1500)
@@ -154,7 +149,6 @@ var drawBubbles = function(svg, uniData, rootId) {
                             newY[d.id] = y;
                             return y });
                     });
-                    console.log(newX);
                     d3.selectAll("line").each(function(d, i){
                         d3.select(this).transition()
 
@@ -323,12 +317,14 @@ var onRootClick = function(data, circle, rootId) {
 };
 
 //find the faculties that are connected to the upct universitiy
-var findNodes = function(rootId, links, data) {
+var findNodesAndLinks = function(rootId, links, data) {
     targetArray = [];
     var filteredData = [];
+    var filteredLinks = [];
     for (var i in links) {
         if(links[i].source === rootId) {
             targetArray.push(links[i].target);
+            filteredLinks.push(links[i]);
         }
     }
     for (var i in data) {
@@ -337,8 +333,27 @@ var findNodes = function(rootId, links, data) {
             filteredData.push(data[i]);
         }
     }
-    return filteredData;
+    return [filteredData, filteredLinks];
 };
+
+var mergeData = function(data1, data2) {
+    var data = data1;
+    for(var i in data) {
+        var info = data[i];
+        for(var j in data2) {
+            var figures = data2[j];
+            if(info.id === figures.node_id) {
+                if(figures.indicator === "maleproportion") {
+                    info.maleproportion = +figures.value;
+                }
+                else {
+                    info.size = +figures.value;
+                }
+            }
+        }
+    }
+    return data;
+}
 
 
 
