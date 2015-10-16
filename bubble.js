@@ -6,9 +6,10 @@ var vis = d3.select("#graph")
     //class to make it responsive
     .classed("svg-content-responsive", true);
 
-var rList = []
-
-var gender = false;
+var gender = true;
+var nodeList = [];
+var connectionList = [];
+var rootBubble;
 
 //shown on hover
 var tooltip = d3.select("body")
@@ -21,62 +22,32 @@ var tooltip = d3.select("body")
 //read data and create root bubble
 d3.csv("./data/nodes_info.csv", function(data1) {
     d3.csv("./data/nodes_figures.csv", function(data2) {
-        var data = mergeData(data1, data2)
-        
-        //execute this after data has loaded
-        var bubble = vis.selectAll("circle").data([data[0]]).enter()
        
-        //create root bubble
+        //execute this after data has loaded
+        var data = mergeData(data1, data2)
+        var bubble = vis.selectAll("g.root").data([data[0]]).enter().append("g");
         var r = Math.sqrt(data[0].size);
         var margin = 10;
         var labelSpace = 0;
         var x = 600 - r - margin;
         var y = 400 - r - margin;
-        var svg = bubble.append("svg") 
-            .attr("x", x)
-            .attr("y", y)
-            .attr("width", 2 * r + 2 * margin)
-            .attr("height", 2 * r + 2 * margin)
-            .attr("id", function(d) {return d.id})
-            .attr("text", function(d) {return d.fullNameSpanish})
-            .classed("root", true);
-
-         //asign click and hover events    
-        svg
-            .on("mouseover", function(){
-                tooltip.attr("text", svg.attr("text"));
-                return tooltip.style("visibility", "visible");
-            })
-            .on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
-            .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
-            .on("click", function(d){ onRootClick(data, svg, d.id);});
-
+        var id = data[0].id;
+        var size = data[0].size;
+        var fullName = data[0].fullNameSpanish;
+        var labelSpanish = data[0].labelSpanish;
+        var color = data[0].color;
+        var width = 2 * r + 2 * margin;
+        var value = +data[0].maleproportion;
+        
         if(!gender) {   
-
-            sizeCircle(svg)
-                .r(r)
-                .labelSpanish(function(d){ return d.labelSpanish})
-                .size(function(d) {return d.size})
-                .x(x)
-                .y(y)
-                .color(function(d){return d.color})
-                .labelSpace(labelSpace)
-                .margin(margin)
-                .render();
+            
+            rootBubble = new SizeCircle(data, bubble, x, y, id, size, fullName, labelSpanish, labelSpace, margin, color, "root", 1, 360, 1);
+            rootBubble.draw();
 
         } else {
-            
-            radialProgress(svg)
-                .label(data[0].labelSpanish)
-                .diameter(2 * r + 2 * margin)
-                .value(+data[0].maleproportion)
-                .x(x)
-                .y(y)
-                .id(data[0].id)
-                .labelSpace(labelSpace)
-                .margin(margin)
-                .onClick(function() {onRootClick(data, svg, data[0].id)})
-                .render();
+
+            rootBubble = new RadialProgress(data, bubble, x, y, id, size, value, width, fullName, labelSpanish, labelSpace, margin, color, "root", 1, 360, 1);
+            rootBubble.draw();
         }
     });
 });
@@ -102,197 +73,50 @@ var drawBubbles = function(uniData, rootId) {
             var rootMargin = 10;
             var margin = 3;
             var labelSpace = 20;
-
+    
             //create bubbles of different sizes for faculties
-            var bubbles = vis.selectAll("circle.node").data(data).enter();
-
-            var svg = bubbles.append("svg").each(function(d,i) {
-            
+            var bubbles = vis.selectAll("g.node").data(data).enter().append("g");
+            bubbles.each(function(d,i) {
                 var r = Math.sqrt(d.size) * 1.3;
                 var rootX = +d3.select("[id='" + rootId + "']").attr("x");
                 var rootY = +d3.select("[id='" + rootId + "']").attr("y");
                 var id = d.id;
-                var text = d.fullNameSpanish;
+                var fullName = d.fullNameSpanish;
                 var maleproportion = d.maleproportion;
                 var labelSpanish = d.labelSpanish;
-                console.log(labelSpanish);
                 var size = d.size;
                 var length = data.length;
                 var width = 2 * r + 2 * margin + 2 * labelSpace;
                 var height = width;
                 var color = d.color;
-
-                d3.select(this).attr("x", rootX)
-                    .attr("y", rootY)
-                    .attr("width", width)
-                    .attr("height", height)
-                    .attr("id", id)
-                    .attr("text", text)
-                    .classed("node", true);
                 
                 if(!gender) {
-                    sizeCircle(d3.select(this))
-                        .r(r)
-                        .labelSpanish(labelSpanish)
-                        .size(size)
-                        .x(rootX)
-                        .y(rootY)
-                        .id(id)
-                        .len(length)
-                        .color(color)
-                        .i(i)
-                        .labelSpace(labelSpace)
-                        .margin(margin)
-                        .width(width)
-                        .render();
 
+                    var nodeCircle = new SizeCircle(d, d3.select(this), rootX, rootY, id, size, fullName, labelSpanish, labelSpace, margin, color, "node", i, slice, length);
+                    nodeList.push(nodeCircle);
+                    nodeCircle.draw();
                 
-                    //asign click and hover events to the bubbles
-
-                    /*    var svg = d3.select(this);      
-                        var width = svg.attr("width");
-                        var fullName = svg.attr("text");
-                        var r = svg.select("circle").attr("r");
-                        var cx = svg.select("circle").attr("cx");
-                        var cy = svg.select("circle").attr("cy");
-                        var x = svg.attr("x");
-                        var y = svg.attr("y");
-                        svg
-                            .on("click", function(){console.log("do something");})
-                            /*.on("mouseover", function(){
-                                if(width < 90) {
-                                    var newX = +x + Math.cos((i+1) * toRadians(slice)) * (r - 20);
-                                    var newY = +y + Math.sin((i+1) * toRadians(slice)) * (r - 20);
-                                    d3.select(this)
-                                        .transition()
-                                        .duration(300)
-                                        .ease("linear")
-                                        .delay(0)
-                                        .attr("width", 90)
-                                        .attr("height", 90)
-                                        .attr("x", newX)
-                                        .attr("y", newY)
-                                        
-                                    d3.select(this).select("circle")
-                                        .transition()
-                                        .duration(300)
-                                        .ease("linear")
-                                        .delay(0)
-                                        .attr("r", 20)
-                                        .attr("cx", 45)
-                                        .attr("cy", 45);
-                                    d3.select(this).select(".size")
-                                        .transition()
-                                        .duration(300)
-                                        .ease("linear")
-                                        .delay(0)
-                                        .attr("x", 45)
-                                        .attr("y", 45)
-                                        .style("font-size", "20px");
-                                    
-                                }
-                                tooltip.attr("text", fullName);
-                                return tooltip.style("visibility", "visible");
-                            })
-                            .on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
-                            .on("mouseout", function(){
-                                if(width < 70) {
-                                    d3.select(this)
-                                        .transition()
-                                        .duration(300)
-                                        .ease("linear")
-                                        .delay(0)
-                                        .attr("transform","scale(1)");
-                                }
-                                return tooltip.style("visibility", "hidden");
-                            });*/
                 } else {
-                    radialProgress(d3.select(this))
-                        .label(labelSpanish)
-                        .diameter(2 * r + 2 * margin + 2 * labelSpace)
-                        .value(maleproportion)
-                        .x(rootX)
-                        .y(rootY)
-                        .id(id)
-                        .len(length)
-                        .i(i)
-                        .render();
+
+                    var radialProgress = new RadialProgress(d, d3.select(this), rootX, rootY, id, size, maleproportion, width, fullName, labelSpanish, labelSpace, margin, color, "node", i, slice, length);
+                    nodeList.push(radialProgress);
+                    radialProgress.draw();
                 }
             });
 
             //create lines that connect the bubbles with the root bubble
             var lines = vis.selectAll("line").data(links).enter().append("line").each(function(d, i){
-
-                var rootR = +(d3.select("[id='" + d.source + "']").attr("width") - 2 * rootMargin) / 2;
-                var rootX = +d3.select("[id='" + rootId + "']").attr("x") + rootR + rootMargin;
-                var rootY = +d3.select("[id='" + rootId + "']").attr("y") + rootR + rootMargin;
-                d3.select(this)
-                    .classed("node", true)
-                    .attr("x1", function(d) {return rootX + Math.cos((i+1) * toRadians(slice)) * rootR})
-                    .attr("y1", function(d) {return rootY + Math.sin((i+1) * toRadians(slice)) * rootR})
-                    .attr("x2", function(d) {return rootX + Math.cos((i+1) * toRadians(slice)) * rootR})
-                    .attr("y2", function(d) {return rootY + Math.sin((i+1) * toRadians(slice)) * rootR})
-                    .style("stroke", "#006600")
-                    .style("stroke-width", "3px");
+                
+                var connection = new Connection(d3.select(this), rootBubble, nodeList[i], "#006600", slice, i);
+                connectionList.push(connection);
+   
             });
             
             //create transitions for the bubbles and lines (move them from the center to their final position)
-            d3.transition()
-                .duration(1500)
-                .ease("elastic")
-                .delay(0)
-                .each(function() {
-                    var rootR = +(d3.select("[id='" + rootId + "']").attr("width") - 2 * rootMargin) / 2;
-                    var rootX = +d3.select("[id='" + rootId + "']").attr("x") + rootR + rootMargin;
-                    var rootY = +d3.select("[id='" + rootId + "']").attr("y") + rootR + rootMargin;
-                    var lengths = [220, 240, 260, 200, 180]; 
-                    var selectLength = function(){return lengths[Math.floor(Math.random() * lengths.length)];};
-                    var newX = {};
-                    var newY = {};
-                    d3.selectAll("svg.node").each(function(d, i){
-                        var r = (d3.select(this).attr("width") - 2 * labelSpace) / 2;
-                        d3.select(this).transition()
-
-                        //calculate new positions for the bubbles
-                        .attr("x",function(d) {
-                            var x = rootX + Math.cos((i+1) * toRadians(slice)) * selectLength();
-                            x > rootX ? x = x - r : x = x - 2 * r;
-                            newX[d.id] = x;
-                            return x })
-                        .attr("y", function(d) {
-                            var y = rootY + Math.sin((i+1) * toRadians(slice)) * selectLength();
-                            y > rootY ? y = y - r : y = y - 2 * r;
-                            newY[d.id] = y;
-                            return y });
-                    });
-                    d3.selectAll("line").each(function(d, i){
-                        console.log(d.target);
-                        var r = (d3.select("[id='" + d.target + "']").attr("width")) / 2;
-                        d3.select(this).transition()
-
-                        //calculate end points for the lines
-                        .attr("x2", function(d) {
-                            var targetCenter = newX[d.target] + r;
-                            var targetRadius = Math.cos((i + 1) * toRadians(slice)) * (r - labelSpace - margin);
-                            return targetCenter - targetRadius;
-                        })
-                        .attr("y2", function(d) {
-                            var targetCenter = newY[d.target] + r;
-                            var targetRadius = Math.sin((i + 1) * toRadians(slice)) * (r - labelSpace - margin);
-                            return targetCenter - targetRadius;
-                        });
-                    });
-                })
-
-                //at the end of the transition append text to the bubbles
-                .each("end", function(){
-                    var groups = d3.selectAll("g.node").each( function(d, i){
-
-                        
-
-                            
-                        });
-                });
+            for(i in nodeList) {
+                nodeList[i].move();
+                connectionList[i].move();
+            }   
         }
     )        
 };
@@ -303,12 +127,12 @@ var toRadians = function(angle) {
 }
 
 //calculate text position for the faculties
-var textPosition = function(i, length, width, margin) {
+var textPosition = function(i, length, width) {
     if(i < length/2) {
-        return [width/2 + margin, width];
+        return [width/2, width];
     }
     else if(i >= length/2) {
-        return [width/2 + margin, 14];
+        return [width/2, 14];
     }
 };
 
@@ -323,24 +147,14 @@ var onRootClick = function(data, svg, rootId) {
 
     //if bubbles for the faculties are shown, remove them
     else {
-        vis.selectAll("svg.node").remove();
+        vis.selectAll("g.node").remove();
         var slice = 360 / data.slice(1).length;
-        d3.transition()
-            .duration(200)
-            .ease("linear")
-            .delay(0)
-            .each(function() {
-                d3.selectAll("line").each(function(d, i){
-                    d3.select(this).transition()
-                        .attr("x2", d3.select(this).attr("x1"))
-                        .attr("y2", d3.select(this).attr("y1"))
-                    });
-                        
-                })
-                .each("end", function(){
-                    vis.selectAll("line.node").remove();
-                    svg.classed("open", false);
-                });
+        nodeList = [];
+        for(i in connectionList) {
+            connectionList[i].erase();
+        }
+        connectionList = [];
+        svg.classed("open", false);
     }
 };
 
@@ -384,388 +198,425 @@ var mergeData = function(data1, data2) {
     return data;
 }
 
+function Connection(connection, source, target, stroke, slice, position) {
+
+    var sourceR = source.r;
+    var sourceX = source.x + source.width/2;
+    var sourceY = source.y + source.width/2;
+    var targetR = target.r;
+    var targetX = target.x + target.width/2;
+    var targetY = target.y + target.width/2;
+    var x1 = sourceX + Math.cos((position+1) * toRadians(slice)) * sourceR;
+    var y1 = sourceY + Math.sin((position+1) * toRadians(slice)) * sourceR;
+    var x2 = targetX + Math.cos((position+1) * toRadians(slice)) * targetR;
+    var y2 = targetY + Math.sin((position+1) * toRadians(slice)) * targetR;
+
+    connection
+        .attr("x1", x1)
+        .attr("y1", y1)
+        .attr("x2", x2)
+        .attr("y2", y2)
+        .style("stroke", stroke)
+        .style("stroke-width", "3px");
+
+    this.move = function() {
+        
+        var newX = (target.x + target.width/2) - Math.cos((position+1) * toRadians(slice)) * targetR;
+        var newY = (target.y + target.width/2) - Math.sin((position+1) * toRadians(slice)) * targetR;
+        var transition = connection.transition()
+            .duration(1500)
+            .ease("elastic")
+            .delay(0)
+            .attr("x2", newX)
+            .attr("y2", newY);
+    }
+
+    this.erase = function() {
+        connection.transition()
+            .duration(200)
+            .ease("linear")
+            .delay(0)
+            .attr("x2", x1)
+            .attr("y2", y1)
+            .each("end", function() {d3.selectAll("line").remove()});
+    }
+}
+
+
 //create circles which size depends on the size of the faculties
-function sizeCircle(parent) {
-    var _r = 0,
-        _margin = 10,
-        _x = 600 - _r - _margin,
-        _y = 400 - _r - _margin,
-        _labelSpace = 0,
-        _id = "",
-        _labelSpanish = "",
-        _size = 0,
-        _length = 0,
-        _width = 2 * _r + 2 * _margin + 2 * _labelSpace,
-        _height = _width,
-        _color = "#ffffff";
+function SizeCircle(data, parent, x, y, id, size, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len) {
+    var data = data;
+    var parent = parent;
+    this.x = x;
+    this.y = y;
+    var id = id;
+    var size = size;
+    var fullName = fullName;
+    var labelSpanish = labelSpanish;
+    var labelSpace = labelSpace;
+    var margin = margin;
+    var color = color;
+    var classes = classes;
+    var position = position;
+    var slice = slice;
+    var len = len;
 
-    var _selection = d3.select(parent);
 
-    function draw() {
-        _selection.each(function (data) {
-            var circle = this.append("circle")
-                .attr("cx", _r + _margin + _labelSpace)
-                .attr("cy", _r + _margin + _labelSpace)
-                .attr("r", _r)
-                .attr("fill", _color)
+    if (classes === "root") { 
+        this.r = Math.sqrt(size);
+        parent.classed("root", true);
+    }
+    else {
+        this.r = Math.sqrt(size) * 1.3;
+        parent.classed("node", true);
+    }
+    this.width =  2 * this.r + 2 * margin + 2 * labelSpace;
+    var height = this.width;
+    
+    var lengths = [220, 240, 260, 200, 180]; 
+    this.chosenLength = 200;
 
-            if (!this.classed("root")) {  
-                circle.classed("node", true);
-            }
-            else {
-                circle.classed("root", true);
-            }
+    var svg = parent.append("svg");
 
-            //append text for size
-            var text = this.append('text')
-                .classed("size", true)
-                .style('fill', 'white')
-                .style("text-anchor", "middle")
-                .text(_size);
+    this.draw = function() {
+      
+        svg.attr("x", this.x)
+            .attr("y", this.y)
+            .attr("width", this.width)
+            .attr("height", height)
+            .attr("id", id)
+            .attr("text", fullName)
+            .classed(classes, true);
 
-            if (!this.classed("root")) { 
-                text.style("font-size", _r/1.1+"px")
-                    .classed("node", true)
-                    .attr('x', _r + _margin + _labelSpace)
-                    .attr('y', (_r + _margin + _labelSpace) * 1.13);
-            } else {
-                text.style("font-size", "30px")
-                    .attr('x', _r + _margin + _labelSpace)
-                    .attr('y', (_r + _margin + _labelSpace + 30));
-            }
-            //append labels
-            var label = this.append("text")
+        //asign click and hover events    
+        svg
+            .on("mouseover", function(){
+                tooltip.attr("text", svg.attr("text"));
+                return tooltip.style("visibility", "visible");
+            })
+            .on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
+            .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
+        if(svg.classed("root")) {
+            svg.on("click", function(d){ onRootClick(data, svg, id);});
+        }
+
+        var group = svg.append("g");
+        var circle = group.append("circle")
+            .attr("cx", this.width/2)
+            .attr("cy", this.width/2)
+            .attr("r", this.r)
+            .attr("fill", color)
+            .classed(classes, true);
+
+        //append text for size
+        var text = group.append('text')
+            .classed("size", true)
+            .style('fill', 'white')
+            .style("text-anchor", "middle")
+            .text(size);
+
+        if (!svg.classed("root")) { 
+            text.style("font-size", this.r/1.1+"px")
                 .classed("node", true)
-                .classed("label", true)
-                .text(_labelSpanish)
-                .style("text-anchor", "middle")
+                .attr('x', this.width/2)
+                .attr('y', this.width/2 * 1.13);
+        } else {
+            text.style("font-size", "30px")
+                .attr('x', this.width/2)
+                .attr('y', this.width/2 + 30);
+        }
+        //append labels
+        var label = group.append("text")
+            .classed(classes, true)
+            .classed("label", true)
+            .text(labelSpanish)
+            .style("text-anchor", "middle")
 
-            if (!this.classed("root")) { 
-                label.style("font-size", "14px")
-                    .style('fill', '#006600')
-                    .attr("x", textPosition(_i, _length, _width, _margin)[0])
-                    .attr("y", textPosition(_i, _length, _width, _margin)[1]);
-            }
+        if (!svg.classed("root")) { 
+            label.style("font-size", "14px")
+                .style('fill', '#006600')
+                .attr("x", textPosition(position, len, this.width)[0])
+                .attr("y", textPosition(position, len, this.width)[1]);
+        }
 
-            else {
-                label.style("font-size", "30px")
-                    .style('fill', 'white')
-                    .attr('x', _r + _margin + _labelSpace)
-                    .attr('y', (_r + _margin + _labelSpace));
-            }
-        });
+        else {
+            label.style("font-size", "30px")
+                .style('fill', 'white')
+                .attr('x', this.width/2)
+                .attr('y', this.width/2);
+        }
+            /*svg.on("mouseover", function(){
+                if(width < 90) {
+                    _svgX = +svg.attr("x");
+                    _svgY = +svg.attr("y");
+                     console.log(_svgX + "prej");
+                    _circleX = + circle.attr("cx");
+                    _circleY = + circle.attr("cy");
+                    var newX = +_width/2 + Math.cos((_i+1) * toRadians(_slice)) * (_r);
+                    var newY = +_width/2 + Math.sin((_i+1) * toRadians(_slice)) * (_r);
+                    var newWidth = _width + 2 * _r;
+                    var newHeight = newWidth;
+                    svg
+                        .transition().duration(300).ease("linear").delay(0)
+                        .attr("width", newWidth)
+                        .attr("height", newHeight)
+                        .attr("x", _svgX - _r)
+                        .attr("y", _svgY - _r)
+                    console.log(svg.attr("x") + "kasnej")
+                        
+                    circle
+                        .transition().duration(300).ease("linear").delay(0)
+                        .attr("r", 2 * _r)
+                        .attr("cx", newX + _r)
+                        .attr("cy", newY + _r)
+
+                    text
+                        .transition().duration(300).ease("linear").delay(0)
+                        .attr("x", newX + _r)
+                        .attr("y", (newY + _r) * 1.13)
+                        .style("font-size", 2 *_r/1.1+"px");
+
+                    label
+                        .transition().duration(300).ease("linear").delay(0)
+                        .attr("x", textPosition(_i, _length, newWidth)[0])  
+                }
+            });
+            svg.on("mouseout", function(){
+                if(_width < 90) {
+                    console.log("mouseout");
+                    var newX = +_width/2 + Math.cos((_i+1) * toRadians(_slice)) * (_r);
+                    var newY = +_width/2 + Math.sin((_i+1) * toRadians(_slice)) * (_r);
+                    svg
+                        .transition().duration(300).ease("linear").delay(0)
+                        .attr("width",  _width)
+                        .attr("height", _width)
+                        .attr("x", _svgX)
+                        .attr("y", _svgY)
+                    console.log(_svgX + "po mouseout");  
+                       
+                        
+                    circle
+                        .transition().duration(300).ease("linear").delay(0)
+                        .attr("r", _r)
+                        .attr("cx", _circleX)
+                        .attr("cy", _circleY)
+
+                    text
+                        .transition().duration(300).ease("linear").delay(0)
+                        .attr("x", _circleX)
+                        .attr("y", (_circleY) * 1.13)
+                        .style("font-size", _r/1.1+"px");
+
+                    label
+                        .transition().duration(300).ease("linear").delay(0)
+                        .attr("x", textPosition(_i, _length, _width)[0])
+                }           
+            });*/   
 
     }
 
-    draw.render = function() {
-        draw();
-        return draw;
+    this.move = function() {
+         chosenLength = lengths[Math.floor(Math.random() * lengths.length)];
+         var newX = 600 + Math.cos((position+1) * toRadians(slice)) * chosenLength;
+         newX > this.x ? newX = newX - this.r : newX = newX - 2 * this.r;
+         var newY = 400 + Math.sin((position+1) * toRadians(slice)) * chosenLength;
+         newY > this.y ? newY = newY - this.r : newY = newY - 2 * this.r;
+         this.x = newX;
+         this.y = newY;
+         var transition = svg.transition()
+            .duration(1500)
+            .ease("elastic")
+            .delay(0)
+            .attr("x", this.x)
+            .attr("y", this.y);
+          
     }
 
-    draw.margin = function(_) {
-        if (!arguments.length) return _margin;
-        _margin = _;
-        return draw;
-    };
-
-    draw.labelSpanish = function(_) {
-        if (!arguments.length) return _labelSpanish;
-        _labelSpanish = _;
-        return draw;
-    };
-
-    draw.x = function(_) {
-        if (!arguments.length) return _x
-        _x =  _;
-        return draw;
-    };
-
-    draw.y = function(_) {
-        if (!arguments.length) return _y
-        _y =  _;
-        return draw;
-    };
-
-    draw.id = function(_) {
-        if (!arguments.length) return _id
-        _id =  _;
-        return draw;
-    };
-
-    draw.labelSpace = function(_) {
-        if (!arguments.length) return _labelSpace
-        _labelSpace =  _;
-        return draw;
-    };
-
-    draw.size = function(_) {
-        if (!arguments.length) return _size
-        _size =  _;
-        return draw;
-    };
-
-    draw.len = function(_) {
-        if (!arguments.length) return _length
-        _length =  _;
-        return draw;
-    };
-
-    draw.color = function(_) {
-        if (!arguments.length) return _color
-        _color =  _;
-        return draw;
-    };
-
-    draw.i = function(_) {
-        if (!arguments.length) return _i
-        _i =  _;
-        return draw;
-    };
-
-    draw.r = function(_) {
-        if (!arguments.length) return _r
-        _r =  _;
-        return draw;
-    };
-
-    draw.width = function(_) {
-        if (!arguments.length) return _width
-        _width =  _;
-        return draw;
-    };
-
-    return draw;
 }
 
 //creating radial progress that shows gender distribution of faculties
-function radialProgress(parent) {
-    var _data = null,
-        _duration = 1000,
-        _margin = 3,
-        _diameter = 150,
-        _label ="",
-        _fontSize = 10,
-        _x = 0,
-        _y = 0,
-        _labelSpace = 20,
-        _id = "",
-        _len = 0,
-        _i = 0;
+function RadialProgress(data, parent, x, y, id, size, value, width, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len) { 
+    var data = data;
+    var parent = parent;
+    this.x = x;
+    this.y = y;
+    var id = id;
+    var size = size;
+    var fullName = fullName;
+    var labelSpanish = labelSpanish;
+    var labelSpace = labelSpace;
+    var margin = margin;
+    var color = color;
+    var classes = classes;
+    var position = position;
+    var slice = slice;
+    var len = len;
+    var value = value;
+    
+    var duration = 1000;   
+       
+    var minValue = 0,
+        maxValue = 100;
 
+    var  currentArc= 0, currentValue=0;
 
-    var _mouseClick;
-
-    var _value= 0,
-        _minValue = 0,
-        _maxValue = 100;
-
-    var  _currentArc= 0, _currentValue=0;
-
-    var _arc = d3.svg.arc()
+    var arc = d3.svg.arc()
         .startAngle(0 * (Math.PI/180)); //just radians
 
+    this.width = width;
+    var height = this.width;
+     var radialWidth = width - 2 * margin - 2 * labelSpace;
+    this.r = radialWidth/2;
+    var fontSize = radialWidth*.3;
+    arc.outerRadius(radialWidth/2);
+    arc.innerRadius(radialWidth/2 * .85);
 
-    var _selection=d3.select(parent);
+    var lengths = [220, 240, 260, 200, 180]; 
+    this.chosenLength = 200;
 
-
-    function component() {
-        _selection.each(function (data) {
-            measure();
-            this.attr("x", _x).attr("y", _y).attr("id", _id);
-            var background = this.append("g").attr("class","component")
-                .attr("cursor","pointer")
-                .on("click",onMouseClick);
-
-
-            _arc.endAngle(360 * (Math.PI/180))
-
-            background.append("rect")
-                .attr("class","background")
-                .attr("width", _width)
-                .attr("height", _height)
-                .attr("x", _labelSpace  + _margin)
-                .attr("y", _labelSpace  + _margin)
-
-            background.append("path")
-                .attr("transform", "translate(" + (_width/2 + _labelSpace + _margin) + "," + (_width/2 + _labelSpace + _margin) + ")")
-                .attr("d", _arc)
-                .attr("x", _labelSpace + _margin)
-                .attr("y", _labelSpace + _margin)
-
-            var label = background.append("text")
-                .attr("class", "label")
-                .text(_label)
-
-            if (!this.classed("root")) { 
-                 console.log(_width);
-                label.style("font-size", "14px")
-                    .style('fill', '#006600')
-                    .attr("x", textPosition(_i, _len, _width + 2 * _labelSpace, _margin)[0])
-                    .attr("y", textPosition(_i, _len, _width + 2 * _labelSpace, _margin)[1]);
-            }
-
-            else {
-                label.style("font-size", "30px")
-                    .style('fill', 'white')
-                    .attr('x', _width/2 + _margin + _labelSpace)
-                    .attr('y', ( _width/2 + _margin + _labelSpace));
-            }
-            
-            var g = this.attr("transform", "translate(" + _margin + "," + _margin + ")");
-
-            _arc.endAngle(_currentArc);
-            this.append("g").attr("class", "arcs");
-            var path = this.select(".arcs").selectAll(".arc").data(data);
-            path.enter().append("path")
-                .attr("class","arc")
-                .attr("transform", "translate(" + (_width/2 + _labelSpace  + _margin) + "," + (_width/2 + _labelSpace  + _margin) + ")")
-                .attr("d", _arc);
+    var svg = parent.append("svg");
 
 
-            this.append("g").attr("class", "labels");
-            var label = this.select(".labels").selectAll(".label").data(data);
-            label.enter().append("text")
-                .attr("class","label")
-                .attr("y",_width/2 + _labelSpace  + _margin +_fontSize/3)
-                .attr("x",_width/2 + _labelSpace  + _margin)
-                .attr("cursor","pointer")
-                .attr("width",_width)
-                .text(function (d) { return Math.round((_value-_minValue)/(_maxValue-_minValue)*100) + "%" })
-                .style("font-size",_fontSize+"px")
-                .on("click",onMouseClick);
+    this.draw = function() {
 
-            path.exit().transition().duration(500).attr("x",1000).remove();
+        svg.attr("x", this.x)
+            .attr("y", this.y)
+            .attr("width", width)
+            .attr("height", width)
+            .attr("id", id)
+            .attr("text", fullName)
+            .classed(classes, true);
 
-            layout(this);
+        //asign click and hover events    
+        svg
+            .on("mouseover", function(){
+                tooltip.attr("text", svg.attr("text"));
+                return tooltip.style("visibility", "visible");
+            })
+            .on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
+            .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
+        if(svg.classed("root")) {  
+            parent.classed("root", true); 
+            svg.on("click", function(d){ onRootClick(data, svg, id);});
+        }
 
-            function layout(svg) {
+        else {
+            parent.classed("node", true); 
+        }
 
-                var ratio=(_value-_minValue)/(_maxValue-_minValue);
-                var endAngle=Math.min(360*ratio,360);
-                endAngle=endAngle * Math.PI/180;
+        var background = svg.append("g").attr("class","component")
+            .attr("cursor","pointer")
 
-                path.datum(endAngle);
-                path.transition().duration(_duration)
-                    .attrTween("d", arcTween);
+        arc.endAngle(360 * (Math.PI/180))
 
-                label.datum(Math.round(ratio*100));
-                label.transition().duration(_duration)
-                    .tween("text",labelTween);
+        background.append("rect")
+            .attr("class","background")
+            .attr("width", radialWidth)
+            .attr("height", height)
+            .attr("x", labelSpace  + margin)
+            .attr("y", labelSpace  + margin)
 
-            }
+        background.append("path")
+            .attr("transform", "translate(" + (width/2) + "," + (width/2) + ")")
+            .attr("d", arc)
+            .attr("x", labelSpace + margin)
+            .attr("y", labelSpace + margin)
 
-        });
+        var label = background.append("text")
+            .attr("class", "label")
+            .text(labelSpanish)
 
-        function onMouseClick(d) {
-            if (typeof _mouseClick == "function") {
-                _mouseClick.call();
-            }
+        if (!svg.classed("root")) { 
+            label.style("font-size", "14px")
+                .style('fill', '#006600')
+                .attr("x", textPosition(position, len, width)[0])
+                .attr("y", textPosition(position, len, width)[1]);
+        }
+
+        else {
+            label.style("font-size", "30px")
+                .style('fill', 'white')
+                .attr('x', width/2)
+                .attr('y', width/2);
+        }
+        
+        var g = svg.attr("transform", "translate(" + margin + "," + margin + ")");
+
+        arc.endAngle(currentArc);
+        svg.append("g").attr("class", "arcs");
+        var path = svg.select(".arcs").selectAll(".arc").data([1,1]);
+        path.enter().append("path")
+            .attr("class","arc")
+            .attr("transform", "translate(" + (width/2) + "," + (width/2) + ")")
+            .attr("d", arc);
+
+
+        svg.append("g").attr("class", "labels");
+        var label = svg.select(".labels").selectAll(".label").data([1,1]);
+        label.enter().append("text")
+            .attr("class","label")
+            .attr("y", width/2 + fontSize/3)
+            .attr("x", width/2)
+            .attr("cursor","pointer")
+            .attr("width", radialWidth)
+            .text(function (d) { return Math.round((value - minValue)/(maxValue - minValue)*100) + "%" })
+            .style("font-size", fontSize+"px")
+
+        path.exit().transition().duration(500).attr("x",1000).remove();
+
+        layout(svg);
+
+        function layout(svg) {
+
+            var ratio=(value - minValue)/(maxValue - minValue);
+            var endAngle=Math.min(360*ratio,360);
+            endAngle=endAngle * Math.PI/180;
+
+            path.datum(endAngle);
+            path.transition().duration(duration)
+                .attrTween("d", arcTween);
+
+            label.datum(Math.round(ratio*100));
+            label.transition().duration(duration)
+                .tween("text",labelTween);
+
         }
     }
 
-    function labelTween(a) {
-        var i = d3.interpolate(_currentValue, a);
-        _currentValue = i(0);
+    var labelTween = function(a) {
+        var i = d3.interpolate(currentValue, a);
+        currentValue = i(0);
 
         return function(t) {
-            _currentValue = i(t);
+            currentValue = i(t);
             this.textContent = Math.round(i(t)) + "%";
         }
     }
 
-    function arcTween(a) {
-        var i = d3.interpolate(_currentArc, a);
+    var arcTween = function(a) {
+        var i = d3.interpolate(currentArc, a);
 
         return function(t) {
-            _currentArc=i(t);
-            return _arc.endAngle(i(t))();
+            currentArc=i(t);
+            return arc.endAngle(i(t))();
         };
     }
 
-    function measure() {
-        _width= _diameter - 2 * _margin - 2 * _labelSpace;
-        _height=_width;
-        _fontSize=_width*.3;
-        _arc.outerRadius(_width/2);
-        _arc.innerRadius(_width/2 * .85);
+    this.move = function() {
+         chosenLength = lengths[Math.floor(Math.random() * lengths.length)];
+         var newX = 600 + Math.cos((position+1) * toRadians(slice)) * chosenLength;
+         newX > this.x ? newX = newX - this.r : newX = newX - 2 * this.r;
+         var newY = 400 + Math.sin((position+1) * toRadians(slice)) * chosenLength;
+         newY > this.y ? newY = newY - this.r : newY = newY - 2 * this.r;
+         this.x = newX;
+         this.y = newY;
+         var transition = svg.transition()
+            .duration(1500)
+            .ease("elastic")
+            .delay(0)
+            .attr("x", newX)
+            .attr("y", newY);     
     }
-
-    component.render = function() {
-        measure();
-        component();
-        return component;
-    }
-
-    component.value = function (_) {
-        if (!arguments.length) return _value;
-        _value = [_];
-        _selection.datum([_value]);
-        return component;
-    }
-
-
-    component.margin = function(_) {
-        if (!arguments.length) return _margin;
-        _margin = _;
-        return component;
-    };
-
-    component.diameter = function(_) {
-        if (!arguments.length) return _diameter
-        _diameter =  _;
-        return component;
-    };
-
-    component.label = function(_) {
-        if (!arguments.length) return _label;
-        _label = _;
-        return component;
-    };
-
-    component.x = function(_) {
-        if (!arguments.length) return _x
-        _x =  _;
-        return component;
-    };
-
-    component.y = function(_) {
-        if (!arguments.length) return _y
-        _y =  _;
-        return component;
-    };
-
-    component.id = function(_) {
-        if (!arguments.length) return _id
-        _id =  _;
-        return component;
-    };
-
-    component.labelSpace = function(_) {
-        if (!arguments.length) return _labelSpace
-        _labelSpace =  _;
-        return component;
-    };
-
-    component.len = function(_) {
-        if (!arguments.length) return _len
-        _len =  _;
-        return component;
-    };
-
-    component.i = function(_) {
-        if (!arguments.length) return _i
-        _i =  _;
-        return component;
-    };
-
-    component.onClick = function (_) {
-        if (!arguments.length) return _mouseClick;
-        _mouseClick=_;
-        return component;
-    }
-
-    return component;
-
 }
 
 
