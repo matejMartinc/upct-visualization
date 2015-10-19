@@ -5,6 +5,11 @@
     </head>
     <style>
 
+    #graph {
+        width: 90%;
+        float: left;
+    }
+
     .svg-container {
         display: inline-block;
         position: relative;
@@ -20,12 +25,12 @@
         left: 0;
     }
     circle.root {
-        stroke: #006600;
-        stroke-width: 10px;
+        stroke: #000066;
+        stroke-width: 5px;
     }
 
     circle.node {
-        stroke: #006600;
+        stroke: #000066;
         stroke-width: 3px;
     }
     .
@@ -65,7 +70,7 @@
     }
 
     .component {
-        fill: #e1e1e1;
+        fill: #BA1919;
     }
 
     .component .label {
@@ -91,9 +96,67 @@
         text-anchor: middle;
     }
 
+    .cmn-toggle {
+        position: absolute;
+        margin-left: -9999px;
+        visibility: hidden;
+    }
+
+    .cmn-toggle + label {
+        display: block;
+        position: relative;
+        cursor: pointer;
+        outline: none;
+        user-select: none;
+    }
+
+    input.cmn-toggle + label {
+      margin: 2px;
+      width: 48px;
+      height: 48px;
+    }
+    input.cmn-toggle + label:before,
+    input.cmn-toggle + label:after {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      right: 0;
+      color: #fff;
+      text-align: center;
+    }
+    input.cmn-toggle + label:before {
+      background: url(./images/maleproportion.png);
+      content: "";
+      transition: transform 0.5s;
+      backface-visibility: hidden;
+    }
+    input.cmn-toggle + label:after {
+      background: url(./images/size.png);;
+      content: "";
+      transition: transform 0.5s;
+      transform: rotateY(180deg);
+      backface-visibility: hidden;
+    }
+    input.cmn-toggle:checked + label:before {
+      transform: rotateY(180deg);
+    }
+    input.cmn-toggle:checked + label:after {
+      transform: rotateY(0);
+    }
+    .switch {
+        width: 10%;
+        float: right;
+    }
+
 
     </style>
     <body>
+        <div class="switch">
+            <input id="cmn-toggle" class="cmn-toggle" type="checkbox">
+            <label for="cmn-toggle"></label>
+        </div>
         <div id="graph"></div>
         <script src="./d3.js" charset="utf-8"></script>
         <script src="./bubble.js" charset="utf-8"></script>
