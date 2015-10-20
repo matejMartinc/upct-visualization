@@ -66,7 +66,8 @@ d3.csv("./data/nodes_info.csv", function(data1) {
             color = data[0].color;
             width = 2 * r + 2 * margin;
             value = +data[0].maleproportion;
-            
+
+            //draw root sizeCircle or radialProgres, depends on the chosen view
             if(!gender) {   
                 
                 rootBubble = new SizeCircle(links, data, bubble, x, y, id, size, fullName, labelSpanish, labelSpace, margin, color, "root", 1, 360, 1);
@@ -81,6 +82,7 @@ d3.csv("./data/nodes_info.csv", function(data1) {
     });
 });
 
+//change from size to maleproportion view
 var changeView = function(gen) {
     gender = gen;
     var svg = vis.selectAll("svg.root");
@@ -89,7 +91,6 @@ var changeView = function(gen) {
     console.log(open);
     bubble = vis.selectAll("g.root").data([data[0]]).enter().append("g");
    
-    
     if(!gender) {
         rootBubble = new SizeCircle(links, data, bubble, x, y, id, size, fullName, labelSpanish, labelSpace, margin, color, "root", 1, 360, 1);
         rootBubble.draw();
@@ -140,7 +141,8 @@ var drawBubbles = function(links, uniData, rootId) {
         var width = 2 * r + 2 * margin + 2 * labelSpace;
         var height = width;
         var color = d.color;
-        
+
+        //draw nodes sizeCircles or radialProgreses, depends on the chosen view
         if(!gender) {
 
             var nodeCircle = new SizeCircle(links, d, d3.select(this), x, y, id, size, fullName, labelSpanish, labelSpace, margin, color, "node", i, slice, length);
