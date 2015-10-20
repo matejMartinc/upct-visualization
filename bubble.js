@@ -57,7 +57,7 @@ d3.csv("./data/nodes_info.csv", function(data1) {
             r = Math.sqrt(data[0].size);
             margin = 10;
             labelSpace = 0;
-            x = 600 - r - margin;
+            x = 700 - r - margin;
             y = 300 - r - margin;
             id = data[0].id;
             size = data[0].size;
@@ -129,7 +129,7 @@ var drawBubbles = function(links, uniData, rootId) {
     var bubbles = vis.selectAll("g.node").data(data).enter().append("g");
     bubbles.each(function(d,i) {
         var r = Math.sqrt(d.size) * 1.1;
-        var x = 600 - r - margin - labelSpace;
+        var x = 700 - r - margin - labelSpace;
         var y = 300 - r - margin - labelSpace;
         var id = d.id;
         var fullName = d.fullNameSpanish;
@@ -166,7 +166,6 @@ var drawBubbles = function(links, uniData, rootId) {
     lines.each(function(d, i){
         var connection = new Connection(d3.select(this), rootBubble, nodeList[i], color, slice, i);
         connectionList.push(connection);
-
     });
     
     //create transitions for the bubbles and lines (move them from the center to their final position)
@@ -253,6 +252,7 @@ var mergeData = function(data1, data2) {
     return data;
 }
 
+//object tha draws lines between source and target bubbles
 function Connection(connection, source, target, stroke, slice, position) {
 
     var sourceR = source.getR();
@@ -274,6 +274,7 @@ function Connection(connection, source, target, stroke, slice, position) {
         .style("stroke", stroke)
         .style("stroke-width", "3px");
 
+    //move the target x and y
     this.move = function() {
         var newX = (target.getX() + target.getWidth()/2) - Math.cos((position + 1) * toRadians(slice)) * targetR;
         var newY = (target.getY() + target.getWidth()/2) - Math.sin((position + 1) * toRadians(slice)) * targetR;
@@ -285,6 +286,7 @@ function Connection(connection, source, target, stroke, slice, position) {
             .attr("y2", newY);
     }
 
+    //erase lines after a transition efect
     this.erase = function() {
         connection.transition()
             .duration(200)
@@ -319,6 +321,8 @@ function SizeCircle(links, data, parent, x, y, id, size, fullName, labelSpanish,
         var r = Math.sqrt(size);
         parent.classed("root", true);
     }
+
+    //make non root bubbles a bit bigger
     else {
         var r = Math.sqrt(size) * 1.1;
         parent.classed("node", true);
@@ -326,7 +330,8 @@ function SizeCircle(links, data, parent, x, y, id, size, fullName, labelSpanish,
     var width =  2 * r + 2 * margin + 2 * labelSpace;
     var height = width;
     var fontSize = r *.8;
-    
+
+    //list of different length lines, a length is chosen randomly from the list
     var lengths = [220, 210, 200, 190, 180, 170, 160]; 
     var chosenLength = 200;
 
@@ -335,6 +340,7 @@ function SizeCircle(links, data, parent, x, y, id, size, fullName, labelSpanish,
     var text;
     var label;
 
+    //getters for attributes that are needed outside the class
     this.getX = function() {
         return x;
     }
@@ -351,6 +357,7 @@ function SizeCircle(links, data, parent, x, y, id, size, fullName, labelSpanish,
         return r;
     }
 
+    //draw a bubble 
     this.draw = function() {
       
         svg.attr("x", x)
@@ -411,33 +418,45 @@ function SizeCircle(links, data, parent, x, y, id, size, fullName, labelSpanish,
                 .attr('y', width/2);
         }
 
-         //asign click and hover events    
-        svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
-        svg.on("mouseover", function(){
-            tooltip.attr("text", svg.attr("text"));
-            return tooltip.style("visibility", "visible");
-        })
-        svg.on("mouseout", function(){return tooltip.style("visibility", "hidden"); })
+         //asign click and hover events to root bubble    
+        if(parent.classed("root")) {
+            svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
+            svg.on("mouseover", function(){
+                tooltip.attr("text", svg.attr("text"));
+                return tooltip.style("visibility", "visible");
+            })
+            svg.on("mouseout", function(){return tooltip.style("visibility", "hidden"); })
+        }
 
     }
 
+    //move the bubbles outside the center of the page on root click
     this.move = function() {
+
+        //randomly choose line length from a list of possible lengths
         chosenLength = lengths[Math.floor(Math.random() * lengths.length)];
-        console.log(chosenLength);
+
+        //calculate new x and y
         var newX = (x + width/2) + Math.cos((position + 1) * toRadians(slice)) * chosenLength;
         newX > x ? newX = newX - r : newX = newX - 2 * r;
         var newY = (y + width/2) + Math.sin((position + 1) * toRadians(slice)) * chosenLength;
         newY > y ? newY = newY - r : newY = newY - 2 * r;
         x = newX;
         y = newY;
+
+        //create transition for svg
         var transition = svg.transition()
             .duration(1500)
             .ease("elastic")
             .delay(0)
             .attr("x", x)
             .attr("y", y)
+
+            //assign mouse events for non root bubbles
             .each("end", function(d) {
                 svg.on("mouseover", function(){
+                    
+                    //make small bubbles bigger on hover
                     if(width < 90) {
                         
                         var newX = width/2 + Math.cos((position + 1) * toRadians(slice)) * (r);
@@ -473,8 +492,9 @@ function SizeCircle(links, data, parent, x, y, id, size, fullName, labelSpanish,
                     tooltip.attr("text", svg.attr("text"));
                     return tooltip.style("visibility", "visible"); 
                 });
-
                 svg.on("mouseout", function(){
+                    
+                    //change bubbles back to original size on mouse out
                     if(width < 90) {
                         svg
                             .transition().duration(300).ease("linear").delay(0)
@@ -501,6 +521,7 @@ function SizeCircle(links, data, parent, x, y, id, size, fullName, labelSpanish,
                     }
                     return tooltip.style("visibility", "hidden");           
                 }); 
+                svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
             });
                   
     }
@@ -545,6 +566,7 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
     arc.outerRadius(radialWidth/2);
     arc.innerRadius(radialWidth/2 * .85);
 
+    //list of possible line lengths
     var lengths = [220, 210, 200, 190, 180, 170, 160]; ; 
     var chosenLength = 200;
 
@@ -555,6 +577,7 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
     var proportion;
     var label;
 
+    //getters for attributes needed outside the class
     this.getX = function() {
         return x;
     }
@@ -571,6 +594,7 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
         return r;
     }
 
+    //draw radial progress
     this.draw = function() {
 
         svg.attr("x", x)
@@ -580,16 +604,21 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
             .attr("id", id)
             .attr("text", fullName)
             .classed(classes, true);
-
       
+        //asign click and hover events to root radial progress
         if(svg.classed("root")) {  
             parent.classed("root", true); 
             svg.on("click", function(d){ 
-                console.log("jej");
                 onRootClick(links, data, svg, id);
             });
+    
+            svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
+            svg.on("mouseover", function(){
+                tooltip.attr("text", svg.attr("text"));
+                return tooltip.style("visibility", "visible");
+            })
+            svg.on("mouseout", function(){return tooltip.style("visibility", "hidden"); })
         }
-
         else {
             parent.classed("node", true); 
         }
@@ -599,6 +628,7 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
 
         arc.endAngle(360 * (Math.PI/180))
 
+        //draw background 
         rect = background.append("rect")
             .attr("class","background")
             .attr("width", radialWidth)
@@ -606,10 +636,12 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
             .attr("x", labelSpace  + margin)
             .attr("y", labelSpace  + margin)
 
+        //draw whole circular path
         wholePath = background.append("path")
             .attr("transform", "translate(" + (width/2) + "," + (width/2) + ")")
             .attr("d", arc)
 
+        //append labels
         label = background.append("text")
             .attr("class", "label")
             .text(labelSpanish)
@@ -627,11 +659,11 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
                 .attr('x', width/2)
                 .attr('y', width/2);
         }
-        
-        //var g = svg.attr("transform", "translate(" + margin + "," + margin + ")");
-
+    
         arc.endAngle(currentArc);
         svg.append("g").attr("class", "arcs");
+
+        //draw path for male proportion
         path = svg.select(".arcs").selectAll(".arc").data([1]);
         path.enter().append("path")
             .attr("class","arc")
@@ -640,6 +672,8 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
 
 
         svg.append("g").attr("class", "labels");
+
+        //add male proportion number in the middle of the bubble
         proportion = svg.select(".labels").selectAll(".label").data([1]);
         proportion.enter().append("text")
             .attr("class","label")
@@ -662,6 +696,7 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
 
         function layout(svg) {
 
+            //animate path and proportion
             var ratio=(value - minValue)/(maxValue - minValue);
             var endAngle=Math.min(360*ratio,360);
             endAngle=endAngle * Math.PI/180;
@@ -675,14 +710,6 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
                 .tween("text",labelTween);
 
         }
-
-        //asign click and hover events    
-        svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
-        svg.on("mouseover", function(){
-            tooltip.attr("text", svg.attr("text"));
-            return tooltip.style("visibility", "visible");
-        })
-        svg.on("mouseout", function(){return tooltip.style("visibility", "hidden"); })
     }
 
     var labelTween = function(a) {
@@ -704,9 +731,13 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
         };
     }
 
+    //move the bubble from the center
     this.move = function() {
         
+        //choose line length randomly from the list of possible lengths
         chosenLength = lengths[Math.floor(Math.random() * lengths.length)];
+
+        //calculate new x and y
         var newX = (x + width/2) + Math.cos((position + 1) * toRadians(slice)) * chosenLength;
         newX > x ? newX = newX - r : newX = newX - 2 * r;
         var newY = (y + width/2) + Math.sin((position + 1) * toRadians(slice)) * chosenLength;
@@ -720,7 +751,11 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
             .attr("x", newX)
             .attr("y", newY) 
             .each("end", function(d) {
+
+                //assign hover events to non root bubbles
                 svg.on("mouseover", function(){
+
+                    //make small bubbles bigger on hover
                     if(width < 90) {
                         
                         var newX = width/2 + Math.cos((position + 1) * toRadians(slice)) * (r);
@@ -775,6 +810,7 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
                     return tooltip.style("visibility", "visible"); 
                 });
 
+                //on mouse out change small bubbles back to original size
                 svg.on("mouseout", function(){
                     if(width < 90) {
                         svg
@@ -819,6 +855,7 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
                     }
                     return tooltip.style("visibility", "hidden");           
                 }); 
+                svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
             });    
     }
 }
