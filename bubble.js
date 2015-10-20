@@ -374,7 +374,8 @@ function SizeCircle(links, data, parent, x, y, id, size, fullName, labelSpanish,
             svg.on("click", function(d){ onRootClick(links, data, svg, id);});
         }
 
-        var group = svg.append("g");
+        var group = svg.append("g")
+            .attr("cursor","pointer");
         circle = group.append("circle")
             .attr("cx", width/2)
             .attr("cy", width/2)
