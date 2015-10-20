@@ -36,6 +36,11 @@ var tooltip = d3.select("body")
 
 document.addEventListener("DOMContentLoaded", function (event) {
     var _selector = document.querySelector('input[id=cmn-toggle]');
+    if (_selector.checked) {
+        gender = true;
+    } else {
+        gender = false;
+    }
     _selector.addEventListener('change', function (event) {
         if (_selector.checked) {
            changeView(true);
