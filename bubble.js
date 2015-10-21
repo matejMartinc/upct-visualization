@@ -65,15 +65,15 @@ d3.csv("./data/nodes_info.csv", function(data1) {
             rootGroup = vis.selectAll("g.root").data([data[0]]).enter().append("g");
             rootR = Math.sqrt(data[0].size);
             rootMargin = 10;
-            rootLabelSpace = 0;
-            rootX = 700 - rootR - rootMargin;
-            rootY = 300 - rootR - rootMargin;
+            rootLabelSpace = 60;
+            rootX = 700 - rootR - rootMargin - rootLabelSpace;
+            rootY = 300 - rootR - rootMargin - rootLabelSpace;
             rootId = data[0].id;
             rootSize = data[0].size;
             rootFullName = data[0].fullNameSpanish;
             rootLabelSpanish = data[0].labelSpanish;
             rootColor = data[0].color;
-            rootWidth = 2 * rootR + 2 * rootMargin;
+            rootWidth = 2 * rootR + 2 * rootMargin + 2 * rootLabelSpace;
             rootValue = +data[0].maleproportion;
 
             sizeStandard = rootSize;
@@ -100,7 +100,6 @@ var changeView = function(gen) {
     var svg = vis.selectAll("svg.root");
     var open = svg.classed("open");
     vis.selectAll("g.root").remove();
-    console.log(open);
     rootGroup = vis.selectAll("g.root").data([data[0]]).enter().append("g");
    
     if(!gender) {
@@ -136,14 +135,14 @@ var drawBubbles = function(allLinks, uniData, rootId) {
     var slice = 360 / data.length;
     
     var margin = 3;
-    var labelSpace = 20;
+    var labelSpace = 60;
 
     //create bubbles of different sizes for faculties
     var bubbles = vis.selectAll("g.node").data(data).enter().append("g");
     bubbles.each(function(d,i) {
-        var r = Math.sqrt(d.size) * 1.1;
-        var x = rootX + rootR + rootMargin - r - margin - labelSpace;
-        var y = rootY + rootR + rootMargin - r - margin - labelSpace;
+        var r = Math.sqrt(d.size) * 1.1 * scaleFactor;
+        var x = rootX + rootWidth/2 - r - margin - labelSpace;
+        var y = rootY + rootWidth/2 - r - margin - labelSpace;
         var id = d.id;
         var fullName = d.fullNameSpanish;
         var maleproportion = d.maleproportion;
@@ -195,18 +194,18 @@ var toRadians = function(angle) {
 }
 
 //calculate text position for the faculties
-var textPosition = function(i, length, width) {
-    if(i < length/2) {
-        return [width/2, width];
+var textPosition = function(i, slice, width, labelSpace) {
+    if(i * slice < 120) {
+        return [width/2, width - labelSpace + 16];
     }
-    else if(i >= length/2) {
-        return [width/2, 14];
+    else {
+        return [width/2, labelSpace - 10];
     }
 };
 
 //called on click on the root bubble
 var onRootClick = function(links, data, svg, rootId) {
-    console.log(svg.classed("open"));
+
     //if bubbles for the faculties are not opened, show them
     if(!svg.classed("open")) {
         drawBubbles(links, data, rootId);
@@ -268,7 +267,8 @@ var mergeData = function(data1, data2) {
 
 //object tha draws lines between source and target bubbles
 function Connection(connection, source, target, stroke, slice, position) {
-
+    console.log(toRadians(slice));
+    console.log(position);
     var sourceR = source.getR();
     var sourceX = source.getX() + source.getWidth()/2;
     var sourceY = source.getY() + source.getWidth()/2;
@@ -332,16 +332,14 @@ function SizeCircle(links, data, parent, x, y, id, size, value, fullName, labelS
     var len = len;
     var value = value;
 
-    console.log(classes);
-
     if (classes.split(" ").indexOf("root") != -1) { 
-        var r = Math.sqrt(size);
+        var r = Math.sqrt(size) ;
         parent.classed("root", true);
     }
 
     //make non root bubbles a bit bigger
     else {
-        var r = Math.sqrt(size) * 1.1;
+        var r = Math.sqrt(size) * 1.1 * scaleFactor;
         parent.classed("node", true);
     }
     var width =  2 * r + 2 * margin + 2 * labelSpace;
@@ -385,41 +383,79 @@ function SizeCircle(links, data, parent, x, y, id, size, value, fullName, labelS
             .attr("text", fullName)
             .classed(classes, true);
 
-        //if(svg.classed("root")) {
-            svg.on("click", function(d){ 
-                
-                /*if(svg.classed("node")) {
-                    svg.classed("node", false);
-                    parent.classed("node", false);
-                    svg.classed("root open", true);
-                    parent.classed("root", true);
+       
+        svg.on("click", function(d){ 
+            
+            if(svg.classed("node")) {
+
+                svg.classed("node", false);
+                parent.classed("node", false);
+                svg.classed("root open", true);
+                parent.classed("root level", true);
+                firstlevel = false;
+                if(!rootGroup.classed("level")) {
+                    var firstlevel = true;
                     rootGroup.classed("root", false);
                     rootGroup.classed("node", true);
-                    rootBubble = nodeList[position];
-
-                    rootGroup = parent;
-                    rootR = r;
-                    vrootMargin = margin;
-                    rootLabelSpace = labelSpace;
-                    rootX = x;
-                    rootY = y;
-                    rootId = id;
-                    rootSize = size;
-                    rootFullName = fullName;
-                    rootLabelSpanish = labelSpanish;
-                    rootColor = color;
-                    rootWidth = width;
-                    rootValue = value;
                     scaleFactor = Math.sqrt(sizeStandard) / Math.sqrt(size);
+                    x = rootBubble.getX();
+                    y = rootBubble.getY();
+                    r = r * scaleFactor / 1.1;
+                    labelSpace = 40;
+                    margin = 10;
+                    width =  2 * r + 2 * margin + 2 * labelSpace;
+                    height = width;
+                    fontSize = r *.8;
+                }
+               
+                rootBubble = nodeList[position];
+
+                rootGroup = parent;
+                rootR = r;
+                vrootMargin = margin;
+                rootLabelSpace = labelSpace;
+                rootX = x;
+                rootY = y;
+                rootId = id;
+                rootSize = size;
+                rootFullName = fullName;
+                rootLabelSpanish = labelSpanish;
+                rootColor = color;
+                rootWidth = width;
+                rootValue = value;
+
+                if(firstlevel) {
 
                     svg.transition()
-                       //.duration(750)
-                       //.attr("transform", "translate(" + (-x - width/2) *(scaleFactor-1) +", "+ (-y - width/2) * (scaleFactor-1) + ") " +  "scale(" + scaleFactor + ")");
-                       .attr("x", ) 
-                }*/
-                onRootClick(links, data, svg, id);
-            });
-        //}
+                       .duration(750)
+                       .attr("x",x)
+                       .attr("y",y) 
+                       .attr("width", width)
+                       .attr("height", height)
+
+                    circle
+                        .transition()
+                        .duration(700)
+                        .attr("cx", width/2)
+                        .attr("cy", width/2)
+                        .attr("r", r);
+
+                    text
+                        .transition().duration(700)
+                        .style("font-size", "30px")
+                        .attr('x', width/2)
+                        .attr('y', width/2 + 30);
+
+                    label
+                        .transition().duration(700)
+                        .style("font-size", "30px")
+                        .style('fill', 'white')
+                        .attr('x', width/2)
+                        .attr('y', width/2);
+                }
+            }
+            onRootClick(links, data, svg, id);
+        });
 
         var group = svg.append("g")
             .attr("cursor","pointer");
@@ -457,8 +493,8 @@ function SizeCircle(links, data, parent, x, y, id, size, value, fullName, labelS
         if (!svg.classed("root")) { 
             label.style("font-size", "14px")
                 .style('fill', color)
-                .attr("x", textPosition(position, len, width)[0])
-                .attr("y", textPosition(position, len, width)[1]);
+                .attr("x", textPosition(position, slice, width, labelSpace)[0])
+                .attr("y", textPosition(position, slice, width, labelSpace)[1]);
         }
 
         else {
@@ -484,13 +520,11 @@ function SizeCircle(links, data, parent, x, y, id, size, value, fullName, labelS
     this.move = function() {
 
         //randomly choose line length from a list of possible lengths
-        chosenLength = lengths[Math.floor(Math.random() * lengths.length)];
-
+        chosenLength = lengths[Math.floor(Math.random() * lengths.length)] + r;
+        
         //calculate new x and y
-        var newX = (x + width/2) + Math.cos((position + 1) * toRadians(slice)) * chosenLength;
-        newX > x ? newX = newX - r : newX = newX - 2 * r;
-        var newY = (y + width/2) + Math.sin((position + 1) * toRadians(slice)) * chosenLength;
-        newY > y ? newY = newY - r : newY = newY - 2 * r;
+        var newX = (x + Math.cos((position + 1) * toRadians(slice)) * chosenLength);
+        var newY = (y + Math.sin((position + 1) * toRadians(slice)) * chosenLength);
         x = newX;
         y = newY;
 
@@ -507,7 +541,7 @@ function SizeCircle(links, data, parent, x, y, id, size, value, fullName, labelS
                 svg.on("mouseover", function(){
                     
                     //make small bubbles bigger on hover
-                    if(width < 90) {
+                    if(r < 20) {
                         
                         var newX = width/2 + Math.cos((position + 1) * toRadians(slice)) * (r);
                         var newY = width/2 + Math.sin((position + 1) * toRadians(slice)) * (r);
@@ -536,7 +570,7 @@ function SizeCircle(links, data, parent, x, y, id, size, value, fullName, labelS
                         label
                             .transition().duration(300).ease("linear").delay(0)
                             .attr("x", newX + 2 * r) 
-                            .attr("y", textPosition(position, len, newWidth)[1])   
+                            .attr("y", textPosition(position, slice, newWidth, labelSpace)[1])   
                     }
 
                     tooltip.attr("text", svg.attr("text"));
@@ -545,7 +579,7 @@ function SizeCircle(links, data, parent, x, y, id, size, value, fullName, labelS
                 svg.on("mouseout", function(){
                     
                     //change bubbles back to original size on mouse out
-                    if(width < 90) {
+                    if(r < 20) {
                         svg
                             .transition().duration(300).ease("linear").delay(0)
                             .attr("width", width)
@@ -566,8 +600,8 @@ function SizeCircle(links, data, parent, x, y, id, size, value, fullName, labelS
 
                         label
                             .transition().duration(300).ease("linear").delay(0)
-                            .attr("x", textPosition(position, len, width)[0])
-                            .attr("y", textPosition(position, len, width)[1])
+                            .attr("x", textPosition(position, slice, width, labelSpace)[0])
+                            .attr("y", textPosition(position, slice, width, labelSpace)[1])
                     }
                     return tooltip.style("visibility", "hidden");           
                 }); 
@@ -699,8 +733,8 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
         if (!svg.classed("root")) { 
             label.style("font-size", "14px")
                 .style('fill', color)
-                .attr("x", textPosition(position, len, width)[0])
-                .attr("y", textPosition(position, len, width)[1]);
+                .attr("x", textPosition(position, slice, width, labelSpace)[0])
+                .attr("y", textPosition(position, slice, width, labelSpace)[1]);
         }
 
         else {
@@ -785,13 +819,12 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
     this.move = function() {
         
         //choose line length randomly from the list of possible lengths
-        chosenLength = lengths[Math.floor(Math.random() * lengths.length)];
+        chosenLength = lengths[Math.floor(Math.random() * lengths.length)] + r;
 
         //calculate new x and y
-        var newX = (x + width/2) + Math.cos((position + 1) * toRadians(slice)) * chosenLength;
-        newX > x ? newX = newX - r : newX = newX - 2 * r;
-        var newY = (y + width/2) + Math.sin((position + 1) * toRadians(slice)) * chosenLength;
-        newY > y ? newY = newY - r : newY = newY - 2 * r;
+        var newX = x + Math.cos((position + 1) * toRadians(slice)) * chosenLength;
+        var newY = y + Math.sin((position + 1) * toRadians(slice)) * chosenLength;
+
         x = newX;
         y = newY;
         var transition = svg.transition()
@@ -806,7 +839,7 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
                 svg.on("mouseover", function(){
 
                     //make small bubbles bigger on hover
-                    if(width < 90) {
+                    if(r < 20) {
                         
                         var newX = width/2 + Math.cos((position + 1) * toRadians(slice)) * (r);
                         var newY = width/2 + Math.sin((position + 1) * toRadians(slice)) * (r);
@@ -853,7 +886,7 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
                         label
                             .transition().duration(300).ease("linear").delay(0)
                             .attr("x", newX + 2 * r) 
-                            .attr("y", textPosition(position, len, newWidth)[1])   
+                            .attr("y", textPosition(position, slice, newWidth, labelSpace)[1])   
                     }
 
                     tooltip.attr("text", svg.attr("text"));
@@ -862,7 +895,7 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
 
                 //on mouse out change small bubbles back to original size
                 svg.on("mouseout", function(){
-                    if(width < 90) {
+                    if(r < 20) {
                         svg
                             .transition().duration(300).ease("linear").delay(0)
                             .attr("width", width)
@@ -900,8 +933,8 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
 
                         label
                             .transition().duration(300).ease("linear").delay(0)
-                            .attr("x", textPosition(position, len, width)[0]) 
-                            .attr("y", textPosition(position, len, width)[1])   
+                            .attr("x", textPosition(position, slice, width, labelSpace)[0]) 
+                            .attr("y", textPosition(position, slice, width, labelSpace)[1])   
                     }
                     return tooltip.style("visibility", "hidden");           
                 }); 
