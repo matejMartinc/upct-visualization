@@ -10,25 +10,9 @@ var vis = d3.select("#graph")
 var gender = false;
 var sizeStandard;
 var scaleFactor;
-var nodeList = [];
-var connectionList = [];
+var rootBubble;
 var data;
 var links;
-
-var rootBubble;
-var rootGroup;
-var rootR;
-var rootMargin;
-var rootLabelSpace;
-var rootX;
-var rootY;
-var rootId;
-var rootSize;
-var rootFullName;
-var rootLabelSpanish;
-var rootColor;
-var rootWidth;
-var rootValue;
 
 //shown on hover
 var tooltip = d3.select("body")
@@ -47,9 +31,9 @@ document.addEventListener("DOMContentLoaded", function (event) {
     }
     _selector.addEventListener('change', function (event) {
         if (_selector.checked) {
-           changeView(true);
+           changeView(true, [rootBubble], null);
         } else {
-           changeView(false);
+           changeView(false, [rootBubble], null);
         }
     });
 });
@@ -62,32 +46,28 @@ d3.csv("./data/nodes_info.csv", function(data1) {
             //execute this after data has loaded
             data = mergeData(data1, data2);
             links = allLinks;
-            rootGroup = vis.selectAll("g.root").data([data[0]]).enter().append("g");
-            rootR = Math.sqrt(data[0].size);
-            rootMargin = 10;
-            rootLabelSpace = 60;
-            rootX = 700 - rootR - rootMargin - rootLabelSpace;
-            rootY = 300 - rootR - rootMargin - rootLabelSpace;
-            rootId = data[0].id;
-            rootSize = data[0].size;
-            rootFullName = data[0].fullNameSpanish;
-            rootLabelSpanish = data[0].labelSpanish;
-            rootColor = data[0].color;
-            rootWidth = 2 * rootR + 2 * rootMargin + 2 * rootLabelSpace;
-            rootValue = +data[0].maleproportion;
-
-            sizeStandard = rootSize;
+            sizeStandard = data[0].size;
             scaleFactor = 1;
+            
+            var rootGroup = vis.selectAll("g.root").data([data[0]]).enter().append("g");
+            var rootR = Math.sqrt(data[0].size);
+            var rootMargin = 3;
+            var rootLabelSpace = 60;
+            var rootX = 700 - rootR - rootMargin - rootLabelSpace;
+            var rootY = 300 - rootR - rootMargin - rootLabelSpace;
+            var rootId = data[0].id;
+            var rootSize = data[0].size;
+            var rootFullName = data[0].fullNameSpanish;
+            var rootLabelSpanish = data[0].labelSpanish;
+            var rootColor = data[0].color;
+            var maleProportion = +data[0].maleproportion;
 
             //draw root sizeCircle or radialProgres, depends on the chosen view
             if(!gender) {   
-                
-                rootBubble = new SizeCircle(links, data, rootGroup, rootX, rootY, rootId, rootSize, rootValue, rootFullName, rootLabelSpanish, rootLabelSpace, rootMargin, rootColor, "root", 1, 360, 1);
+                rootBubble = new SizeCircle(null, rootGroup, rootX, rootY, rootId, rootSize, maleProportion, rootFullName, rootLabelSpanish, rootLabelSpace, rootMargin, rootColor, "root", 1, 360, 1);
                 rootBubble.draw();
-
             } else {
-
-                rootBubble = new RadialProgress(links, data, rootGroup, rootX, rootY, rootId, rootSize, rootValue, rootWidth, rootFullName, rootLabelSpanish, rootLabelSpace, rootMargin, rootColor, "root", 1, 360, 1);
+                rootBubble = new RadialProgress(null, rootGroup, rootX, rootY, rootId, rootSize, maleProportion, rootFullName, rootLabelSpanish, rootLabelSpace, rootMargin, rootColor, "root", 1, 360, 1);
                 rootBubble.draw();
             }
         });
@@ -95,60 +75,94 @@ d3.csv("./data/nodes_info.csv", function(data1) {
 });
 
 //change from size to maleproportion view
-var changeView = function(gen) {
+var changeView = function(gen, bubbleList, root) {
     gender = gen;
-    var svg = vis.selectAll("svg.root");
-    var open = svg.classed("open");
-    vis.selectAll("g.root").remove();
-    rootGroup = vis.selectAll("g.root").data([data[0]]).enter().append("g");
-   
-    if(!gender) {
-        rootBubble = new SizeCircle(links, data, rootGroup, rootX, rootY, rootId, rootSize, rootValue, rootFullName, rootLabelSpanish, rootLabelSpace, rootMargin, rootColor, "root", 1, 360, 1);
-        rootBubble.draw();
+    if(bubbleList.length === 0) {
+        return;
     }
+    for(var i in bubbleList) {
+        var bubble = bubbleList[i];
+        var open = bubble.getParent().classed("open");
+        var classes = bubble.getClasses();
+        if(bubble.getRoot() === null) {
+            bubble.erase();
+            var root = bubble.getRoot();
+            var r = bubble.getR();
+            var margin = bubble.getMargin();
+            var labelSpace = bubble.getLabelSpace();
+            var x = bubble.getX();
+            var y = bubble.getY();
+            var id = bubble.getId();
+            var size = bubble.getSize();
+            var fullName = bubble.getFullName();
+            var labelSpanish = bubble.getLabelSpanish();
+            var color = bubble.getColor();
+            var value = bubble.getValue();
+            var width = bubble.getWidth();
+            var position = bubble.getPosition();
+            var slice = bubble.getSlice();
+            var len = bubble.getLen();
+            var rootGroup = vis.selectAll("[id='" + id +"']").data([1]).enter().append("g");
+        
+            if(!gender) {
+                rootBubble = new SizeCircle(root, rootGroup, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len);
+                rootBubble.draw();
+            }
+            else {
+                rootBubble = new RadialProgress(root, rootGroup, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len);
+                rootBubble.draw();
+            }
+        }
 
-    else {
-        rootBubble = new RadialProgress(links, data, rootGroup, rootX, rootY, rootId, rootSize, rootValue, rootWidth, rootFullName, rootLabelSpanish, rootLabelSpace, rootMargin, rootColor, "root", 1, 360, 1);
-        rootBubble.draw();
-    }
+        if(open) {
+            var lines = bubble.connectionList;
+            var nodes = bubble.nodeList;
+            for(var i in lines) {
+                lines[i].fastErase();
+                nodes[i].erase();
+            }
 
-    if(open) {
-        vis.selectAll("g.node").remove();
-        nodeList = [];
-        vis.selectAll("line").remove();
-        connectionList = [];
-        drawBubbles(links, data, rootId);
-        var svg = vis.selectAll("svg.root");
-        svg.classed("open", true);
-    }
+            if(bubble.getRoot() === null) {
+                drawBubbles(rootBubble);
+                changeView(gen, bubble.nodeList, rootBubble);
+            }
+            else {
+                root.getParent().classed(classes, true);
+                drawBubbles(bubble);
+                changeView(gen, bubble.nodeList, root);
+            }
+            
+        }
+    } 
 }
 
 //function for drawing the bubbles for faculties
-var drawBubbles = function(allLinks, uniData, rootId) {
+var drawBubbles = function(root) {
 
     //find the faculties
-    var dataAndLinks = findNodesAndLinks(rootId, allLinks, uniData);
-    var data = dataAndLinks[0];
-    var links = dataAndLinks[1];
+    var dataAndLinks = findNodesAndLinks(root.getId(), links, data);
+    var bubbleData = dataAndLinks[0];
+    var bubbleLinks = dataAndLinks[1];
     
     //divide the circle into parts
-    var slice = 360 / data.length;
+    var slice = 360 / bubbleData.length;
     
     var margin = 3;
     var labelSpace = 60;
 
     //create bubbles of different sizes for faculties
-    var bubbles = vis.selectAll("g.node").data(data).enter().append("g");
-    bubbles.each(function(d,i) {
+    for(var i in bubbleData) {
+        var d = bubbleData[i];
+        var bubble = vis.selectAll("g.node[id='" + d.id +"']").data([1]).enter().append("g");
         var r = Math.sqrt(d.size) * 1.1 * scaleFactor;
-        var x = rootX + rootWidth/2 - r - margin - labelSpace;
-        var y = rootY + rootWidth/2 - r - margin - labelSpace;
+        var x = root.getX() + root.getWidth()/2 - r - margin - labelSpace;
+        var y = root.getY() + root.getWidth()/2 - r - margin - labelSpace;
         var id = d.id;
         var fullName = d.fullNameSpanish;
-        var maleproportion = d.maleproportion;
+        var maleProportion = d.maleproportion;
         var labelSpanish = d.labelSpanish;
         var size = d.size;
-        var length = data.length;
+        var length = bubbleData.length;
         var width = 2 * r + 2 * margin + 2 * labelSpace;
         var height = width;
         var color = d.color;
@@ -156,35 +170,35 @@ var drawBubbles = function(allLinks, uniData, rootId) {
         //draw nodes sizeCircles or radialProgreses, depends on the chosen view
         if(!gender) {
 
-            var nodeCircle = new SizeCircle(allLinks, uniData, d3.select(this), x, y, id, size, maleproportion, fullName, labelSpanish, labelSpace, margin, color, "node", i, slice, length);
-            nodeList.push(nodeCircle);
+            var nodeCircle = new SizeCircle(root, bubble, x, y, id, size, maleProportion, fullName, labelSpanish, labelSpace, margin, color, "node", i, slice, length);
+            root.nodeList.push(nodeCircle);
             nodeCircle.draw();
         
         } else {
 
-            var radialProgress = new RadialProgress(allLinks, uniData, d3.select(this), x, y, id, size, maleproportion, width, fullName, labelSpanish, labelSpace, margin, color, "node", i, slice, length);
-            nodeList.push(radialProgress);
+            var radialProgress = new RadialProgress(root, bubble, x, y, id, size, maleProportion, fullName, labelSpanish, labelSpace, margin, color, "node", i, slice, length);
+            root.nodeList.push(radialProgress);
             radialProgress.draw();
         }
-    });
+    }
 
     //create lines that connect the bubbles with the root bubble
-    var lines = vis.selectAll("line").data(links).enter().append("line");
-    if(gender) {
-        var color = "rgb(63, 127, 205)";
+    for (var i in bubbleLinks) {
+        var line = vis.selectAll("line[id='" + d.id +"']").data([1]).enter().append("line");
+        if(gender) {
+            var color = "rgb(63, 127, 205)";
+        }
+        else {
+            var color = "#000066";
+        }
+        var connection = new Connection(line, root, root.nodeList[i], color, slice, i, length);
+        root.connectionList.push(connection);
     }
-    else {
-        var color = "#000066";
-    }
-    lines.each(function(d, i){
-        var connection = new Connection(d3.select(this), rootBubble, nodeList[i], color, slice, i);
-        connectionList.push(connection);
-    });
     
     //create transitions for the bubbles and lines (move them from the center to their final position)
-    for(i in nodeList) {
-        nodeList[i].move();
-        connectionList[i].move();
+    for(var i in root.nodeList) {
+        root.nodeList[i].move();
+        root.connectionList[i].move();
     }           
 };
 
@@ -204,24 +218,23 @@ var textPosition = function(i, slice, width, labelSpace) {
 };
 
 //called on click on the root bubble
-var onRootClick = function(links, data, svg, rootId) {
+var onRootClick = function(root) {
 
     //if bubbles for the faculties are not opened, show them
-    if(!svg.classed("open")) {
-        drawBubbles(links, data, rootId);
-        svg.classed("open", true);
+    if(root.getParent().classed("open")) {
+        drawBubbles(root);
     }
 
     //if bubbles for the faculties are shown, remove them
     else {
-        vis.selectAll("g.node").remove();
-        //var slice = 360 / data.slice(1).length;
-        nodeList = [];
-        for(i in connectionList) {
-            connectionList[i].erase();
+        for(i in root.nodeList) {
+            root.nodeList[i].erase();
         }
-        connectionList = [];
-        svg.classed("open", false);
+        root.nodeList = [];
+        for(i in root.connectionList) {
+            root.connectionList[i].erase();
+        }
+        root.connectionList = [];
     }
 };
 
@@ -266,19 +279,25 @@ var mergeData = function(data1, data2) {
 }
 
 //object tha draws lines between source and target bubbles
-function Connection(connection, source, target, stroke, slice, position) {
-    console.log(toRadians(slice));
-    console.log(position);
+function Connection(connection, source, target, stroke, slice, position, len) {
     var sourceR = source.getR();
     var sourceX = source.getX() + source.getWidth()/2;
     var sourceY = source.getY() + source.getWidth()/2;
     var targetR = target.getR();
     var targetX = target.getX() + target.getWidth()/2;
     var targetY = target.getY() + target.getWidth()/2;
-    var x1 = sourceX + Math.cos((position+1) * toRadians(slice)) * sourceR;
-    var y1 = sourceY + Math.sin((position+1) * toRadians(slice)) * sourceR;
-    var x2 = targetX + Math.cos((position+1) * toRadians(slice)) * targetR;
-    var y2 = targetY + Math.sin((position+1) * toRadians(slice)) * targetR;
+    
+    var startAngle = 0;
+    if(source.getRoot() !== null) {
+        slice = 360 / (len+1);
+        startAngle = (+source.getPosition() + 1) * +source.getSlice() + 180;
+        console.log(startAngle);
+    }
+
+    var x1 = sourceX + Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * sourceR;
+    var y1 = sourceY + Math.sin((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * sourceR;
+    var x2 = targetX + Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * targetR;
+    var y2 = targetY + Math.sin((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * targetR;
 
     connection
         .attr("x1", x1)
@@ -290,8 +309,8 @@ function Connection(connection, source, target, stroke, slice, position) {
 
     //move the target x and y
     this.move = function() {
-        var newX = (target.getX() + target.getWidth()/2) - Math.cos((position + 1) * toRadians(slice)) * targetR;
-        var newY = (target.getY() + target.getWidth()/2) - Math.sin((position + 1) * toRadians(slice)) * targetR;
+        var newX = (target.getX() + target.getWidth()/2) - Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * targetR;
+        var newY = (target.getY() + target.getWidth()/2) - Math.sin((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * targetR;
         var transition = connection.transition()
             .duration(1500)
             .ease("elastic")
@@ -308,12 +327,16 @@ function Connection(connection, source, target, stroke, slice, position) {
             .delay(0)
             .attr("x2", x1)
             .attr("y2", y1)
-            .each("end", function() {d3.selectAll("line").remove()});
+            .each("end", function() {connection.remove()});
+    }
+
+    this.fastErase = function() {
+        connection.remove();
     }
 }
 
 //create circles which size depends on the size of the faculties
-function SizeCircle(links, data, parent, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len) {
+function SizeCircle(root, parent, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len) {
     var links = links;
     var data = data;
     var parent = parent;
@@ -331,31 +354,27 @@ function SizeCircle(links, data, parent, x, y, id, size, value, fullName, labelS
     var slice = slice;
     var len = len;
     var value = value;
-
-    if (classes.split(" ").indexOf("root") != -1) { 
-        var r = Math.sqrt(size) ;
-        parent.classed("root", true);
-    }
-
-    //make non root bubbles a bit bigger
-    else {
-        var r = Math.sqrt(size) * 1.1 * scaleFactor;
-        parent.classed("node", true);
-    }
+    var root = root;
+    var me = this;
+    
+    var r = Math.sqrt(size) * scaleFactor;
     var width =  2 * r + 2 * margin + 2 * labelSpace;
     var height = width;
     var fontSize = r *.8;
-
+    
+    parent.classed(classes, true).attr("id", id);
+    
     //list of different length lines, a length is chosen randomly from the list
     var lengths = [220, 210, 200, 190, 180, 170, 160]; 
     var chosenLength = 200;
 
     var svg = parent.append("svg");
+    
     var circle;
     var text;
     var label;
 
-    //getters for attributes that are needed outside the class
+    //getters for all attributes
     this.getX = function() {
         return x;
     }
@@ -372,6 +391,65 @@ function SizeCircle(links, data, parent, x, y, id, size, value, fullName, labelS
         return r;
     }
 
+    this.getMargin = function() {
+        return margin;
+    }
+
+    this.getLabelSpace = function() {
+        return labelSpace;
+    }
+
+    this.getId = function() {
+        return id;
+    }
+
+    this.getSize = function() {
+        return size;
+    }
+
+    this.getFullName = function() {
+        return fullName;
+    }
+
+    this.getLabelSpanish = function() {
+        return labelSpanish;
+    }
+
+    this.getColor = function() {
+        return color;
+    }
+
+    this.getValue = function() {
+        return value;
+    }
+
+    this.getParent = function() {
+        return parent;
+    }
+
+    this.getRoot = function() {
+        return root;
+    }
+
+    this.getClasses = function() {
+        return classes;
+    }
+
+    this.getPosition = function() {
+        return position;
+    }
+
+    this.getSlice = function() {
+        return slice;
+    }
+
+    this.getLen = function() {
+        return len;
+    }
+
+    this.nodeList = [];
+    this.connectionList = [];
+
     //draw a bubble 
     this.draw = function() {
       
@@ -379,52 +457,32 @@ function SizeCircle(links, data, parent, x, y, id, size, value, fullName, labelS
             .attr("y", y)
             .attr("width", width)
             .attr("height", height)
-            .attr("id", id)
             .attr("text", fullName)
-            .classed(classes, true);
 
-       
         svg.on("click", function(d){ 
             
-            if(svg.classed("node")) {
-
-                svg.classed("node", false);
+            if(parent.classed("node")) {
                 parent.classed("node", false);
-                svg.classed("root open", true);
-                parent.classed("root level", true);
-                firstlevel = false;
-                if(!rootGroup.classed("level")) {
-                    var firstlevel = true;
-                    rootGroup.classed("root", false);
-                    rootGroup.classed("node", true);
+                
+                if(!root.getParent().classed("level")) {
+                    parent.classed("root level open", true);
                     scaleFactor = Math.sqrt(sizeStandard) / Math.sqrt(size);
-                    x = rootBubble.getX();
-                    y = rootBubble.getY();
-                    r = r * scaleFactor / 1.1;
-                    labelSpace = 40;
-                    margin = 10;
+                    x = root.getX();
+                    y = root.getY();
+                    r = r * scaleFactor;
                     width =  2 * r + 2 * margin + 2 * labelSpace;
                     height = width;
                     fontSize = r *.8;
-                }
-               
-                rootBubble = nodeList[position];
-
-                rootGroup = parent;
-                rootR = r;
-                vrootMargin = margin;
-                rootLabelSpace = labelSpace;
-                rootX = x;
-                rootY = y;
-                rootId = id;
-                rootSize = size;
-                rootFullName = fullName;
-                rootLabelSpanish = labelSpanish;
-                rootColor = color;
-                rootWidth = width;
-                rootValue = value;
-
-                if(firstlevel) {
+                    root.nodeList.splice(position, 1);
+                    for(var i in root.nodeList) {
+                        root.nodeList[i].erase();
+                    }
+                    for(var i in root.connectionList) {
+                        root.connectionList[i].erase();
+                    }
+                    root.erase();
+                    rootBubble = me;
+                    root = null; 
 
                     svg.transition()
                        .duration(750)
@@ -453,8 +511,23 @@ function SizeCircle(links, data, parent, x, y, id, size, value, fullName, labelS
                         .attr('x', width/2)
                         .attr('y', width/2);
                 }
+                else {
+                    parent.classed("root level", true);
+                }
             }
-            onRootClick(links, data, svg, id);
+
+            if(parent.classed("open")) {
+                parent.classed("open", false);
+                var classArray = classes.split(" ");
+                var index = classArray.indexOf("open");
+                classArray.splice(index,1);
+                classes = classArray.join(" ");
+            }
+            else {
+                parent.classed("open", true);
+                classes = classes + " open";
+            }
+            onRootClick(me);
         });
 
         var group = svg.append("g")
@@ -473,7 +546,7 @@ function SizeCircle(links, data, parent, x, y, id, size, value, fullName, labelS
             .style("text-anchor", "middle")
             .text(size);
 
-        if (!svg.classed("root")) { 
+        if (!parent.classed("root")) { 
             text.style("font-size", fontSize + "px")
                 .classed("node", true)
                 .attr('x', width/2)
@@ -483,6 +556,7 @@ function SizeCircle(links, data, parent, x, y, id, size, value, fullName, labelS
                 .attr('x', width/2)
                 .attr('y', width/2 + 30);
         }
+
         //append labels
         label = group.append("text")
             .classed(classes, true)
@@ -490,7 +564,7 @@ function SizeCircle(links, data, parent, x, y, id, size, value, fullName, labelS
             .text(labelSpanish)
             .style("text-anchor", "middle")
 
-        if (!svg.classed("root")) { 
+        if (!parent.classed("root")) { 
             label.style("font-size", "14px")
                 .style('fill', color)
                 .attr("x", textPosition(position, slice, width, labelSpace)[0])
@@ -516,15 +590,19 @@ function SizeCircle(links, data, parent, x, y, id, size, value, fullName, labelS
 
     }
 
-    //move the bubbles outside the center of the page on root click
+    //move the bubbles outside the center of the page on click
     this.move = function() {
 
         //randomly choose line length from a list of possible lengths
         chosenLength = lengths[Math.floor(Math.random() * lengths.length)] + r;
-        
+        var startAngle = 0;
+        if(root.getRoot() !== null) {
+            slice = 360 / (len+1);
+            startAngle = (+root.getPosition() + 1) * +root.getSlice() + 180;
+        }
         //calculate new x and y
-        var newX = (x + Math.cos((position + 1) * toRadians(slice)) * chosenLength);
-        var newY = (y + Math.sin((position + 1) * toRadians(slice)) * chosenLength);
+        var newX = (+x + Math.cos(((+position + 1) * toRadians(+slice)) + toRadians(startAngle)) * chosenLength);
+        var newY = (+y + Math.sin(((+position + 1) * toRadians(+slice)) + toRadians(startAngle)) * chosenLength);
         x = newX;
         y = newY;
 
@@ -610,10 +688,14 @@ function SizeCircle(links, data, parent, x, y, id, size, value, fullName, labelS
                   
     }
 
+    this.erase = function() {
+        d3.selectAll("[id='" + id +"']").remove();
+    }
+
 }
 
 //creating radial progress that shows gender distribution of faculties
-function RadialProgress(links, data, parent, x, y, id, size, value, width, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len) { 
+function RadialProgress(root, parent, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len) { 
     var links = links;
     var data = data;
     var parent = parent;
@@ -631,6 +713,7 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
     var slice = slice;
     var len = len;
     var value = value;
+    var me = this;
     
     var duration = 1000;   
        
@@ -641,11 +724,11 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
 
     var arc = d3.svg.arc()
         .startAngle(0 * (Math.PI/180)); //just radians
-
-    var width = width;
+    var r = Math.sqrt(size) * scaleFactor;
+    var width = 2 * r + 2 * margin + 2 * labelSpace;
     var height = width;
-    var radialWidth = width - 2 * margin - 2 * labelSpace;
-    var r = radialWidth/2;
+    var radialWidth = 2 * r;
+    
     var fontSize = radialWidth*.35;
     arc.outerRadius(radialWidth/2);
     arc.innerRadius(radialWidth/2 * .85);
@@ -654,6 +737,7 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
     var lengths = [220, 210, 200, 190, 180, 170, 160]; ; 
     var chosenLength = 200;
 
+    parent.classed(classes, true).attr("id", id);
     var svg = parent.append("svg");
     var rect;
     var wholePath;
@@ -678,6 +762,65 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
         return r;
     }
 
+    this.getMargin = function() {
+        return margin;
+    }
+
+    this.getLabelSpace = function() {
+        return labelSpace;
+    }
+
+    this.getId = function() {
+        return id;
+    }
+
+    this.getSize = function() {
+        return size;
+    }
+
+    this.getFullName = function() {
+        return fullName;
+    }
+
+    this.getLabelSpanish = function() {
+        return labelSpanish;
+    }
+
+    this.getColor = function() {
+        return color;
+    }
+
+    this.getValue = function() {
+        return value;
+    }
+
+    this.getParent = function() {
+        return parent;
+    }
+
+    this.getRoot = function() {
+        return root;
+    }
+
+    this.getClasses = function() {
+        return classes;
+    }
+
+    this.getPosition = function() {
+        return position;
+    }
+
+    this.getSlice = function() {
+        return slice;
+    }
+
+    this.getLen = function() {
+        return len;
+    }
+
+    this.nodeList = [];
+    this.connectionList = [];
+
     //draw radial progress
     this.draw = function() {
 
@@ -685,15 +828,23 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
             .attr("y", y)
             .attr("width", width)
             .attr("height", height)
-            .attr("id", id)
             .attr("text", fullName)
-            .classed(classes, true);
       
         //asign click and hover events to root radial progress
-        if(svg.classed("root")) {  
-            parent.classed("root", true); 
-            svg.on("click", function(d){ 
-                onRootClick(links, data, svg, id);
+        if(parent.classed("root")) {  
+            svg.on("click", function(d){
+                if(parent.classed("open")) {
+                    parent.classed("open", false);
+                    var classArray = classes.split(" ");
+                    var index = classArray.indexOf("open");
+                    classArray.splice(index,1);
+                    classes = classArray.join(" ");
+                }
+                else {
+                    parent.classed("open", true);
+                    classes = classes + " open";
+                } 
+                onRootClick(me);
             });
     
             svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
@@ -730,7 +881,7 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
             .attr("class", "label")
             .text(labelSpanish)
 
-        if (!svg.classed("root")) { 
+        if (!parent.classed("root")) { 
             label.style("font-size", "14px")
                 .style('fill', color)
                 .attr("x", textPosition(position, slice, width, labelSpace)[0])
@@ -769,7 +920,7 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
             .style("font-size", fontSize+"px")
             .style('fill', color);
 
-        if(svg.classed("root")) {
+        if(parent.classed("root")) {
             fontSize = 30;
             proportion.attr("y", width/2 + fontSize)
                  .attr("x", width/2)
@@ -822,8 +973,8 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
         chosenLength = lengths[Math.floor(Math.random() * lengths.length)] + r;
 
         //calculate new x and y
-        var newX = x + Math.cos((position + 1) * toRadians(slice)) * chosenLength;
-        var newY = y + Math.sin((position + 1) * toRadians(slice)) * chosenLength;
+        var newX = x + Math.cos((+position + 1) * toRadians(+slice)) * chosenLength;
+        var newY = y + Math.sin((+position + 1) * toRadians(+slice)) * chosenLength;
 
         x = newX;
         y = newY;
@@ -940,6 +1091,10 @@ function RadialProgress(links, data, parent, x, y, id, size, value, width, fullN
                 }); 
                 svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
             });    
+    }
+
+    this.erase = function() {
+        d3.selectAll("[id='" + id +"']").remove();
     }
 }
 
