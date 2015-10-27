@@ -47,32 +47,44 @@ d3.csv("./data/nodes_info.csv", function(data1) {
             data = mergeData(data1, data2);
             links = allLinks;
             sizeStandard = data[0].size;
-            scaleFactor = 1;
-            
-            var rootGroup = vis.selectAll("g.root").data([data[0]]).enter().append("g");
-            var rootR = Math.sqrt(data[0].size);
-            var rootMargin = 3;
-            var rootLabelSpace = 100;
-            var rootX = 600 - rootR - rootMargin - rootLabelSpace;
-            var rootY = 500 - rootR - rootMargin - rootLabelSpace;
-            var rootId = data[0].id;
-            var rootSize = data[0].size;
-            var rootFullName = data[0].fullNameSpanish;
-            var rootLabelSpanish = data[0].labelSpanish;
-            var rootColor = data[0].color;
-            var maleProportion = +data[0].maleproportion;
-
-            //draw root sizeCircle or radialProgres, depends on the chosen view
-            if(!gender) {   
-                rootBubble = new SizeCircle(null, rootGroup, rootX, rootY, rootId, rootSize, maleProportion, rootFullName, rootLabelSpanish, rootLabelSpace, rootMargin, rootColor, "root", 1, 360, 1);
-                rootBubble.draw();
-            } else {
-                rootBubble = new RadialProgress(null, rootGroup, rootX, rootY, rootId, rootSize, maleProportion, rootFullName, rootLabelSpanish, rootLabelSpace, rootMargin, rootColor, "root", 1, 360, 1);
-                rootBubble.draw();
-            }
+            createMainBubble("root");
         });
     });
 });
+
+var createMainBubble = function(classes) {
+    scaleFactor = 1;
+            
+    var rootGroup = vis.selectAll("g.root").data([data[0]]).enter().append("g");
+    var rootR = Math.sqrt(data[0].size);
+    var rootMargin = 3;
+    var rootLabelSpace = 110;
+    var rootX = 600 - rootR - rootMargin - rootLabelSpace;
+    var rootY = 400 - rootR - rootMargin - rootLabelSpace;
+    var rootId = data[0].id;
+    var rootSize = data[0].size;
+    var rootFullName = data[0].fullNameSpanish;
+    var rootLabelSpanish = data[0].labelSpanish;
+    var rootColor = data[0].color;
+    var maleProportion = +data[0].maleproportion;
+
+    //draw root sizeCircle or radialProgres, depends on the chosen view
+    if(!gender) {   
+        rootBubble = new SizeCircle(null, rootGroup, rootX, rootY, rootId, rootSize, maleProportion, rootFullName, rootLabelSpanish, rootLabelSpace, rootMargin, rootColor, classes, 1, 360, 1);
+        rootBubble.draw();
+    } else {
+        rootBubble = new RadialProgress(null, rootGroup, rootX, rootY, rootId, rootSize, maleProportion, rootFullName, rootLabelSpanish, rootLabelSpace, rootMargin, rootColor, classes, 1, 360, 1);
+        rootBubble.draw();
+    }
+}
+
+var goBack = function() {
+    document.getElementById("back-button").style.visibility="hidden";
+    vis.selectAll("g"). remove();
+    vis.selectAll("line").remove();
+    createMainBubble("root open");
+    drawBubbles(rootBubble);
+}
 
 //change from size to maleproportion view
 var changeView = function(gen, bubbleList, root) {
@@ -151,7 +163,7 @@ var drawBubbles = function(root) {
     var slice = 360 / bubbleData.length;
     
     var margin = 3;
-    var labelSpace = 100;
+    var labelSpace = 110;
 
     //create bubbles of different sizes for faculties
     for(var i in bubbleData) {
@@ -503,6 +515,7 @@ function SizeCircle(root, parent, x, y, id, size, value, fullName, labelSpanish,
                 parent.classed("node", false);
                 
                 if(!root.getParent().classed("levelone") && !root.getParent().classed("leveltwo")) {
+                    document.getElementById("back-button").style.visibility="visible";
                     parent.classed("root levelone open", true);
                     scaleFactor = Math.sqrt(sizeStandard) / Math.sqrt(size);
                     x = root.getX();
@@ -891,6 +904,7 @@ function RadialProgress(root, parent, x, y, id, size, value, fullName, labelSpan
                 parent.classed("node", false);
                 
                 if(!root.getParent().classed("levelone") && !root.getParent().classed("leveltwo")) {
+                    document.getElementById("back-button").style.visibility="visible";
                     parent.classed("root levelone open", true);
                     scaleFactor = Math.sqrt(sizeStandard) / Math.sqrt(size);
                     x = root.getX();
@@ -951,6 +965,7 @@ function RadialProgress(root, parent, x, y, id, size, value, fullName, labelSpan
                         .attr('y', width/2);
 
                     proportion
+                        .transition().duration(700)
                         .attr("y", width/2 + fontSize)
                         .attr("x", width/2)
                         .style("font-size", fontSize+"px")
