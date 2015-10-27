@@ -60,7 +60,7 @@ var createMainBubble = function(classes) {
     var rootMargin = 3;
     var rootLabelSpace = 110;
     var rootX = 600 - rootR - rootMargin - rootLabelSpace;
-    var rootY = 400 - rootR - rootMargin - rootLabelSpace;
+    var rootY = 430 - rootR - rootMargin - rootLabelSpace;
     var rootId = data[0].id;
     var rootSize = data[0].size;
     var rootFullName = data[0].fullNameSpanish;
@@ -96,7 +96,6 @@ var changeView = function(gen, bubbleList, root) {
         var bubble = bubbleList[i];
         var open = bubble.getParent().classed("open");
         var classes = bubble.getClasses();
-        console.log(classes);
         if(bubble.getRoot() === null) {
             bubble.erase();
             var r = bubble.getR();
@@ -234,6 +233,8 @@ var toRadians = function(angle) {
 
 //calculate text position for the faculties
 var textPosition = function(i, slice, startAngle, width, labelSpace) {
+    console.log((((i + 1) * slice + startAngle) % 360) + "poz");
+
     if((((i + 1) * slice + startAngle) % 360) < 180) {
         return [width/2, width - labelSpace + 16];
     }
@@ -607,8 +608,8 @@ function SizeCircle(root, parent, x, y, id, size, value, fullName, labelSpanish,
         if (!parent.classed("root")) { 
             label.style("font-size", "14px")
                 .style('fill', color)
-                .attr("x", textPosition(position, slice, startAngle, width, labelSpace)[0])
-                .attr("y", textPosition(position, slice, startAngle, width, labelSpace)[1]);
+                .attr("x", textPosition(+position, +slice, +startAngle, width, labelSpace)[0])
+                .attr("y", textPosition(+position, +slice, +startAngle, width, labelSpace)[1]);
         }
 
         else {
@@ -641,8 +642,8 @@ function SizeCircle(root, parent, x, y, id, size, value, fullName, labelSpanish,
             startAngle = ((+root.getPosition() + 1) * +root.getSlice() + 180) % 360;
         }
 
-        //console.log(labelSpanish);
-        //console.log((+position + 1) * +slice + startAngle);
+        console.log(labelSpanish);
+        console.log(((+position + 1) * +slice + startAngle) % 360);
 
         //calculate new x and y
         var newX = (+x + Math.cos(((+position + 1) * toRadians(+slice)) + toRadians(startAngle)) * chosenLength);
@@ -651,8 +652,8 @@ function SizeCircle(root, parent, x, y, id, size, value, fullName, labelSpanish,
         y = newY;
 
         label
-            .attr("x", textPosition(position, slice, startAngle, width, labelSpace)[0]) 
-            .attr("y", textPosition(position, slice, startAngle, width, labelSpace)[1])
+            .attr("x", textPosition(+position, +slice, +startAngle, width, labelSpace)[0]) 
+            .attr("y", textPosition(+position, +slice, +startAngle, width, labelSpace)[1])
 
         //create transition for svg
         var transition = svg.transition()
@@ -696,7 +697,7 @@ function SizeCircle(root, parent, x, y, id, size, value, fullName, labelSpanish,
                         label
                             .transition().duration(300).ease("linear").delay(0)
                             .attr("x", newX + 2 * r) 
-                            .attr("y", textPosition(position, slice, startAngle, newWidth, labelSpace)[1])   
+                            .attr("y", textPosition(+position, +slice, +startAngle, newWidth, labelSpace)[1])   
                     }
 
                     tooltip.attr("text", svg.attr("text"));
@@ -726,8 +727,8 @@ function SizeCircle(root, parent, x, y, id, size, value, fullName, labelSpanish,
 
                         label
                             .transition().duration(300).ease("linear").delay(0)
-                            .attr("x", textPosition(position, slice, startAngle, width, labelSpace)[0])
-                            .attr("y", textPosition(position, slice, startAngle, width, labelSpace)[1])
+                            .attr("x", textPosition(+position, +slice, +startAngle, width, labelSpace)[0])
+                            .attr("y", textPosition(+position, +slice, +startAngle, width, labelSpace)[1])
                     }
                     return tooltip.style("visibility", "hidden");           
                 }); 
@@ -925,7 +926,7 @@ function RadialProgress(root, parent, x, y, id, size, value, fullName, labelSpan
                     rootBubble = me;
                     root = null; 
 
-                    fontSize = 30;
+                    fontSize = 27;
                     
 
                     svg.transition()
@@ -1013,8 +1014,8 @@ function RadialProgress(root, parent, x, y, id, size, value, fullName, labelSpan
         if (!parent.classed("root")) { 
             label.style("font-size", "14px")
                 .style('fill', color)
-                .attr("x", textPosition(position, slice, startAngle, width, labelSpace)[0])
-                .attr("y", textPosition(position, slice, startAngle, width, labelSpace)[1]);
+                .attr("x", textPosition(+position, +slice, +startAngle, width, labelSpace)[0])
+                .attr("y", textPosition(+position, +slice, +startAngle, width, labelSpace)[1]);
         }
 
         else {
@@ -1116,8 +1117,8 @@ function RadialProgress(root, parent, x, y, id, size, value, fullName, labelSpan
         y = newY;
 
         label
-            .attr("x", textPosition(position, slice, startAngle, width, labelSpace)[0]) 
-            .attr("y", textPosition(position, slice, startAngle, width, labelSpace)[1])
+            .attr("x", textPosition(+position, +slice, +startAngle, width, labelSpace)[0]) 
+            .attr("y", textPosition(+position, +slice, +startAngle, width, labelSpace)[1])
 
         var transition = svg.transition()
             .duration(1500)
@@ -1178,7 +1179,7 @@ function RadialProgress(root, parent, x, y, id, size, value, fullName, labelSpan
                         label
                             .transition().duration(300).ease("linear").delay(0)
                             .attr("x", newX + 2 * r) 
-                            .attr("y", textPosition(position, slice, startAngle, newWidth, labelSpace)[1])   
+                            .attr("y", textPosition(+position, +slice, +startAngle, newWidth, labelSpace)[1])   
                     }
 
                     tooltip.attr("text", svg.attr("text"));
@@ -1225,8 +1226,8 @@ function RadialProgress(root, parent, x, y, id, size, value, fullName, labelSpan
 
                         label
                             .transition().duration(300).ease("linear").delay(0)
-                            .attr("x", textPosition(position, slice, startAngle, width, labelSpace)[0]) 
-                            .attr("y", textPosition(position, slice, startAngle, width, labelSpace)[1])   
+                            .attr("x", textPosition(+position, +slice, +startAngle, width, labelSpace)[0]) 
+                            .attr("y", textPosition(+position, +slice, +startAngle, width, labelSpace)[1])   
                     }
                     return tooltip.style("visibility", "hidden");           
                 }); 
