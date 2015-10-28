@@ -168,7 +168,9 @@ var drawBubbles = function(root) {
     for(var i in bubbleData) {
         var d = bubbleData[i];
         var bubble = vis.selectAll("g.node[id='" + d.id +"']").data([1]).enter().append("g");
-        var r = Math.sqrt(d.size) * scaleFactor;
+       
+        var r = Math.sqrt(+d.size) * scaleFactor;
+        console.log(r);
         if(root !== null) {
             if(root.getClasses().indexOf("levelone") >= 0) {
                 if(r < 20) {
@@ -300,7 +302,7 @@ var mergeData = function(data1, data2) {
                 if(figures.indicator === "maleproportion") {
                     info.maleproportion = +figures.value;
                 }
-                else {
+                else if (figures.indicator === "students") {
                     info.size = +figures.value;
                 }
             }
@@ -653,9 +655,9 @@ function SizeCircle(root, parent, x, y, id, size, value, fullName, labelSpanish,
             startAngle =(((+root.getPosition() + 1) * +root.getSlice() + 180) % 360) + 10;
         }
 
-        console.log(labelSpanish);
-        console.log(position);
-        console.log(chosenLength);
+        //console.log(labelSpanish);
+        //console.log(position);
+        //console.log(chosenLength);
 
         //calculate new x and y
         var newX = (+x + Math.cos(((+position + 1) * toRadians(+slice)) + toRadians(startAngle)) * (chosenLength + r));
