@@ -233,8 +233,6 @@ var toRadians = function(angle) {
 
 //calculate text position for the faculties
 var textPosition = function(i, slice, startAngle, width, labelSpace) {
-    console.log((((i + 1) * slice + startAngle) % 360) + "poz");
-
     if((((i + 1) * slice + startAngle) % 360) < 180) {
         return [width/2, width - labelSpace + 16];
     }
@@ -320,10 +318,10 @@ function Connection(connection, source, target, stroke, slice, position, len) {
     var targetX = target.getX() + target.getWidth()/2;
     var targetY = target.getY() + target.getWidth()/2;
     
-    var startAngle = 0;
+    var startAngle = -10;
     if(source.getRoot() !== null) {
         slice = 360 / (len+1);
-        startAngle = ((+source.getPosition() + 1) * +source.getSlice() + 180) % 360;
+        startAngle =(((+source.getPosition() + 1) * +source.getSlice() + 180) % 360) + 10;
     }
 
     var x1 = sourceX + Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * sourceR;
@@ -396,22 +394,23 @@ function SizeCircle(root, parent, x, y, id, size, value, fullName, labelSpanish,
     var chosenLength = 160;
     if(root != null) {
         if(root.getClasses().indexOf("levelone") >= 0) {
+            lengths = [210, 200, 190, 180, 170, 160];
             if(r < 20) {
                 r = 20;
             }
         }
         else if (root.getClasses().indexOf("leveltwo") >= 0) {
-             if(r < 10) {
+            lengths = [160, 150, 140, 130, 120, 110, 100];
+            if(r < 10) {
                 r = 10;
-               
             } 
-            lengths = [180, 170, 160, 150, 140, 130];
+            
         }
     }
     var width =  2 * r + 2 * margin + 2 * labelSpace;
     var height = width;
     var fontSize = r *.8;
-    var startAngle = 0;
+    var startAngle = -10;
     
     parent.classed(classes, true).attr("id", id);
 
@@ -492,6 +491,10 @@ function SizeCircle(root, parent, x, y, id, size, value, fullName, labelSpanish,
 
     this.getLen = function() {
         return len;
+    }
+
+    this.getChosenLength = function() {
+        return chosenLength;
     }
 
     this.setClasses = function(classed) {
@@ -635,19 +638,28 @@ function SizeCircle(root, parent, x, y, id, size, value, fullName, labelSpanish,
     this.move = function() {
 
         //randomly choose line length from a list of possible lengths
-        chosenLength = lengths[Math.floor(Math.random() * lengths.length)] + r;
-        startAngle = 0;
+        chosenLength = lengths[Math.floor(Math.random() * lengths.length)];
+        if (root.getClasses().indexOf("leveltwo") >= 0) {
+            if(position != 0) {
+                var previousChosenLength = root.nodeList[position - 1].getChosenLength();
+                if(chosenLength === previousChosenLength + 20 || chosenLength === previousChosenLength + 30 || chosenLength === previousChosenLength + 40) {
+                    chosenLength = previousChosenLength;
+                }
+            }
+        }
+
         if(root.getRoot() !== null) {
             slice = 360 / (len+1);
-            startAngle = ((+root.getPosition() + 1) * +root.getSlice() + 180) % 360;
+            startAngle =(((+root.getPosition() + 1) * +root.getSlice() + 180) % 360) + 10;
         }
 
         console.log(labelSpanish);
-        console.log(((+position + 1) * +slice + startAngle) % 360);
+        console.log(position);
+        console.log(chosenLength);
 
         //calculate new x and y
-        var newX = (+x + Math.cos(((+position + 1) * toRadians(+slice)) + toRadians(startAngle)) * chosenLength);
-        var newY = (+y + Math.sin(((+position + 1) * toRadians(+slice)) + toRadians(startAngle)) * chosenLength);
+        var newX = (+x + Math.cos(((+position + 1) * toRadians(+slice)) + toRadians(startAngle)) * (chosenLength + r));
+        var newY = (+y + Math.sin(((+position + 1) * toRadians(+slice)) + toRadians(startAngle)) * (chosenLength + r));
         x = newX;
         y = newY;
 
@@ -775,27 +787,29 @@ function RadialProgress(root, parent, x, y, id, size, value, fullName, labelSpan
         .startAngle(0 * (Math.PI/180)); //just radians
     var r = Math.sqrt(size) * scaleFactor;
 
-    //list of possible line lengths
-    var lengths = [220, 210, 200, 190, 180, 170, 160];
+    //list of different length lines, a length is chosen randomly from the list
+    var lengths = [220, 210, 200, 190, 180, 170, 160]; 
     var chosenLength = 160;
     if(root != null) {
         if(root.getClasses().indexOf("levelone") >= 0) {
+            lengths = [210, 200, 190, 180, 170, 160];
             if(r < 20) {
                 r = 20;
             }
         }
         else if (root.getClasses().indexOf("leveltwo") >= 0) {
-             if(r < 10) {
-                r = 10; 
+            lengths = [160, 150, 140, 130, 120, 110, 100];
+            if(r < 10) {
+                r = 10;
             } 
-            lengths = [180, 170, 160, 150, 140, 130];
+            
         }
     }
 
     var width = 2 * r + 2 * margin + 2 * labelSpace;
     var height = width;
     var radialWidth = 2 * r;
-    var startAngle = 0;
+    var startAngle = - 10;
     
     var fontSize = radialWidth*.35;
     arc.outerRadius(radialWidth/2);
@@ -880,6 +894,10 @@ function RadialProgress(root, parent, x, y, id, size, value, fullName, labelSpan
 
     this.getLen = function() {
         return len;
+    }
+
+    this.getChosenLength = function() {
+        return chosenLength;
     }
 
     this.setClasses = function(classed) {
@@ -985,8 +1003,6 @@ function RadialProgress(root, parent, x, y, id, size, value, fullName, labelSpan
             return tooltip.style("visibility", "visible");
         })
         svg.on("mouseout", function(){return tooltip.style("visibility", "hidden"); })
-        
-        
 
         var background = svg.append("g").attr("class","component")
             .attr("cursor","pointer")
@@ -1100,19 +1116,24 @@ function RadialProgress(root, parent, x, y, id, size, value, fullName, labelSpan
     this.move = function() {
         
         //choose line length randomly from the list of possible lengths
-        chosenLength = lengths[Math.floor(Math.random() * lengths.length)] + r;
-        startAngle = 0;
-        if(root.getRoot() !== null) {
-            slice = 360 / (len+1);
-            startAngle = ((+root.getPosition() + 1) * +root.getSlice() + 180) % 360;
+        chosenLength = lengths[Math.floor(Math.random() * lengths.length)];
+        if (root.getClasses().indexOf("leveltwo") >= 0) {
+            if(position != 0) {
+                var previousChosenLength = root.nodeList[position - 1].getChosenLength();
+                if(chosenLength === previousChosenLength + 20 || chosenLength === previousChosenLength + 30 || chosenLength === previousChosenLength + 40) {
+                    chosenLength = previousChosenLength;
+                }
+            }
         }
 
-        //console.log(labelSpanish);
-        //console.log((+position + 1) * +slice + startAngle);
+        if(root.getRoot() !== null) {
+            slice = 360 / (len+1);
+            startAngle = (((+root.getPosition() + 1) * +root.getSlice() + 180) % 360) + 10;
+        }
 
         //calculate new x and y
-        var newX = (+x + Math.cos(((+position + 1) * toRadians(+slice)) + toRadians(startAngle)) * chosenLength);
-        var newY = (+y + Math.sin(((+position + 1) * toRadians(+slice)) + toRadians(startAngle)) * chosenLength);
+        var newX = (+x + Math.cos(((+position + 1) * toRadians(+slice)) + toRadians(startAngle)) * (chosenLength + r));
+        var newY = (+y + Math.sin(((+position + 1) * toRadians(+slice)) + toRadians(startAngle)) * (chosenLength + r));
         x = newX;
         y = newY;
 
