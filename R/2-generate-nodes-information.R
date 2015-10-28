@@ -1,6 +1,8 @@
 library("opadar")
 library("dplyr")
-datapath <- c("./data/")
+datapath <- c("./data/", "~/OPADA/Transparencia/indicadores-para-web/saiku-exports/",
+              "~/OPADA/Transparencia/indicadores-para-web/data/",
+              "~/OPADA/data/SIIU/ficheros-codigos/")
 load(datafile("alumnos.Rdata"))
 ## -----------------------------------------------------------------------------
 ##
@@ -114,7 +116,8 @@ indicators <- function(alumnos, groupvariable){
   indicadores %>%
     tidyr::gather(key = "indicator",
                   value = "value",
-                  - node_id)
+                  - node_id) %>%
+    mutate(indicator = as.character(indicator))
 }
 nodes_figures <-
   rbind(indicators(alumnos, "nivel1"),
@@ -122,5 +125,10 @@ nodes_figures <-
         indicators(alumnos, "nivel3"),
         indicators(alumnos, "nivel4")) %>%
   arrange(node_id, desc(indicator))
+nodes_figures$year <- "2013-14"
+
+load("results/indicators_tables.Rdata")
+nodes_figures <- rbind(nodes_figures,
+                       indicators_tables)
 write.csv(nodes_figures, file = "../data/nodes_figures.csv",
           row.names = FALSE)
