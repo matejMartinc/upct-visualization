@@ -39,9 +39,9 @@ document.addEventListener("DOMContentLoaded", function (event) {
 });
 
 //read data and create root bubble
-d3.csv("./data/nodes_info.csv", function(data1) {
-    d3.csv("./data/nodes_figures.csv", function(data2) {
-        d3.csv("./data/links.csv", function(allLinks) {
+d3.csv("./data/students/nodes_info.csv", function(data1) {
+    d3.csv("./data/students/nodes_figures.csv", function(data2) {
+        d3.csv("./data/students/links.csv", function(allLinks) {
        
             //execute this after data has loaded
             data = mergeData(data1, data2);
@@ -299,15 +299,34 @@ var mergeData = function(data1, data2) {
         for(var j in data2) {
             var figures = data2[j];
             if(info.id === figures.node_id) {
+                if(!info.hasOwnProperty("year")) {
+                    info.year = {};
+                }
+                if(!info.year.hasOwnProperty(figures.year)) {
+                    info.year[figures.year] = [];
+                }
                 if(figures.indicator === "maleproportion") {
                     info.maleproportion = +figures.value;
                 }
                 else if (figures.indicator === "students") {
                     info.size = +figures.value;
                 }
+                else if (figures.indicator === "newstudents") {
+                    info.year[figures.year].push(figures.value);
+                }
+                else if (figures.indicator === "graduationrate") {
+                    info.year[figures.year].push(figures.value);
+                }
+                else if (figures.indicator === "efficiencyrate") {
+                    info.year[figures.year].push(figures.value);
+                }
+                 else if (figures.indicator === "performancerate") {
+                     info.year[figures.year].push(figures.value);
+                }
             }
         }
     }
+    console.log(data);
     return data;
 }
 
@@ -344,8 +363,8 @@ function Connection(connection, source, target, stroke, slice, position, len) {
         var newX = (target.getX() + target.getWidth()/2) - Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * targetR;
         var newY = (target.getY() + target.getWidth()/2) - Math.sin((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * targetR;
         var transition = connection.transition()
-            .duration(1500)
-            .ease("elastic")
+            .duration(700)
+            .ease("linear")
             .delay(0)
             .attr("x2", newX)
             .attr("y2", newY);
@@ -354,7 +373,7 @@ function Connection(connection, source, target, stroke, slice, position, len) {
     //erase lines after a transition efect
     this.erase = function() {
         connection.transition()
-            .duration(200)
+            .duration(300)
             .ease("linear")
             .delay(0)
             .attr("x2", x1)
@@ -671,8 +690,8 @@ function SizeCircle(root, parent, x, y, id, size, value, fullName, labelSpanish,
 
         //create transition for svg
         var transition = svg.transition()
-            .duration(1500)
-            .ease("elastic")
+            .duration(700)
+            .ease("linear")
             .delay(0)
             .attr("x", x)
             .attr("y", y)
@@ -1144,8 +1163,8 @@ function RadialProgress(root, parent, x, y, id, size, value, fullName, labelSpan
             .attr("y", textPosition(+position, +slice, +startAngle, width, labelSpace)[1])
 
         var transition = svg.transition()
-            .duration(1500)
-            .ease("elastic")
+            .duration(700)
+            .ease("linear")
             .delay(0)
             .attr("x", newX)
             .attr("y", newY) 
