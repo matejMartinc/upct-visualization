@@ -8,6 +8,7 @@ var vis = d3.select("#graph")
     .classed("svg-content-responsive", true);
 
 var gender = false;
+var analytics = false;
 var sizeStandard;
 var scaleFactor;
 var rootBubble;
@@ -31,9 +32,22 @@ document.addEventListener("DOMContentLoaded", function (event) {
     }
     _selector.addEventListener('change', function (event) {
         if (_selector.checked) {
-           changeView(true, [rootBubble], null);
+           changeView(true, analytics, [rootBubble], null);
         } else {
-           changeView(false, [rootBubble], null);
+           changeView(false, analytics, [rootBubble], null);
+        }
+    });
+    var _selectorTable = document.querySelector('input[id=analytics-toggle]');
+    if (_selectorTable.checked) {
+        analytics = true;
+    } else {
+        analytics = false;
+    }
+    _selectorTable.addEventListener('change', function (event) {
+        if (_selectorTable.checked) {
+           changeView(gender, true, [rootBubble], null);
+        } else {
+           changeView(gender, false, [rootBubble], null);
         }
     });
 });
@@ -73,7 +87,7 @@ var createMainBubble = function(classes) {
         rootBubble = new SizeCircle(data[0].year, null, rootGroup, rootX, rootY, rootId, rootSize, maleProportion, rootFullName, rootLabelSpanish, rootLabelSpace, rootMargin, rootColor, classes, 1, 360, 1);
         rootBubble.draw();
     } else {
-        rootBubble = new Table(data[0].year, null, rootGroup, rootX, rootY, rootId, rootSize, maleProportion, rootFullName, rootLabelSpanish, rootLabelSpace, rootMargin, rootColor, classes, 1, 360, 1);
+        rootBubble = new RadialProgress(data[0].year, null, rootGroup, rootX, rootY, rootId, rootSize, maleProportion, rootFullName, rootLabelSpanish, rootLabelSpace, rootMargin, rootColor, classes, 1, 360, 1);
         rootBubble.draw();
     }
 }
@@ -87,54 +101,75 @@ var goBack = function() {
 }
 
 //change from size to maleproportion view
-var changeView = function(gen, bubbleList, root) {
+var changeView = function(gen, stats, bubbleList, root) {
     gender = gen;
+    analytics = stats;
+    console.log(stats);
     if(bubbleList.length === 0) {
         return;
     }
     for(var i in bubbleList) {
         var bubble = bubbleList[i];
-        var classes = bubble.getClasses();
+        var classes = bubble.classes;
         bubble.erase();
-        var r = bubble.getR();
-        var margin = bubble.getMargin();
-        var labelSpace = bubble.getLabelSpace();
-        var x = bubble.getX();
-        var y = bubble.getY();
-        var id = bubble.getId();
-        var size = bubble.getSize();
-        var fullName = bubble.getFullName();
-        var labelSpanish = bubble.getLabelSpanish();
-        var color = bubble.getColor();
-        var value = bubble.getValue();
-        var width = bubble.getWidth();
-        var position = bubble.getPosition();
-        var slice = bubble.getSlice();
-        var len = bubble.getLen();
+        var r = bubble.r;
+        var margin = bubble.margin;
+        var labelSpace = bubble.labelSpace;
+        var x = bubble.x;
+        var y = bubble.y;
+        var id = bubble.id;
+        var size = bubble.size;
+        var fullName = bubble.fullName;
+        var labelSpanish = bubble.labelSpanish;
+        var color = bubble.color;
+        var value = bubble.value;
+        var width = bubble.width;
+        var position = bubble.position;
+        var slice = bubble.slice;
+        var len = bubble.len;
         var rootGroup = vis.selectAll("[id='" + id +"']").data([1]).enter().append("g");
+        var analyticsExists = false;
+
+        for(var prop in bubble.tableData) {
+            if(bubble.tableData[prop].length != 0) {
+                console.log(bubble.tableData);
+                analyticsExists = true;
+                break;
+            } 
+        }
+        console.log(analyticsExists);
         
         if(!gender) {
-            var newBubble = new SizeCircle(bubble.getTableData(), root, rootGroup, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len);
-
+            if(analytics && analyticsExists) {
+                var newBubble = new Table(bubble.tableData, root, rootGroup, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len);
+            }
+            else {
+                var newBubble = new SizeCircle(bubble.tableData, root, rootGroup, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len);
+            }
         }
         else {
-            var newBubble = new Table(bubble.getTableData(), root, rootGroup, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len);
+            if(analytics && analyticsExists) {
+                var newBubble = new Table(bubble.tableData, root, rootGroup, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len);
+            }
+            else {
+                var newBubble = new RadialProgress(bubble.tableData, root, rootGroup, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len);
+            }
         }
-        newBubble.setStartAngle(bubble.getStartAngle());    
+        newBubble.startAngle = bubble.startAngle;    
         newBubble.draw();
-        if(bubble.getRoot() === null) {
+        if(bubble.root === null) {
             rootBubble = newBubble;   
         }
         else {
-            for(var j in bubble.getRoot().connectionList) {
-                bubble.getRoot().connectionList[j].changeColor();
+            for(var j in bubble.root.connectionList) {
+                bubble.root.connectionList[j].changeColor();
             }
-            root.connectionList = bubble.getRoot().connectionList;
+            root.connectionList = bubble.root.connectionList;
             root.nodeList.push(newBubble);
             newBubble.addMouseEvents();
             
         }
-        changeView(gen, bubble.nodeList, newBubble);         
+        changeView(gen, stats, bubble.nodeList, newBubble);         
     }   
 }
 
@@ -142,10 +177,10 @@ var changeView = function(gen, bubbleList, root) {
 var drawBubbles = function(root) {
 
     //find the faculties
-    var dataAndLinks = findNodesAndLinks(root.getId(), links, data);
+    var dataAndLinks = findNodesAndLinks(root.id, links, data);
     var bubbleData = dataAndLinks[0];
     var bubbleLinks = dataAndLinks[1];
-    
+
     //divide the circle into parts
     var slice = 360 / bubbleData.length;
     
@@ -160,19 +195,19 @@ var drawBubbles = function(root) {
         var r = Math.sqrt(+d.size) * scaleFactor;
 
         if(root !== null) {
-            if(root.getClasses().indexOf("levelone") >= 0) {
+            if(root.classes.indexOf("levelone") >= 0) {
                 if(r < 20) {
                     r = 20;
                 }
             }
-            else if (root.getClasses().indexOf("leveltwo") >= 0) {
+            else if (root.classes.indexOf("leveltwo") >= 0) {
                 if(r < 10) {
                     r = 10;
                 }
             }
         }
-        var x = root.getX() + root.getWidth()/2 - r - margin - labelSpace;
-        var y = root.getY() + root.getWidth()/2 - r - margin - labelSpace;
+        var x = root.x + root.width/2 - r - margin - labelSpace;
+        var y = root.y + root.width/2 - r - margin - labelSpace;
         var id = d.id;
         var fullName = d.fullNameSpanish;
         var maleProportion = d.maleproportion;
@@ -180,17 +215,35 @@ var drawBubbles = function(root) {
         var size = d.size;
         var length = bubbleData.length;
         var color = d.color;
+        var analyticsExists = false;
+        console.log(bubbleData[i].year);
+        for(var prop in bubbleData[i].year) {
+            if(bubbleData[i].year[prop].length != 0) {
+                analyticsExists = true;
+                break;
+            } 
+        }
 
         //draw nodes sizeCircles or radialProgreses, depends on the chosen view
         if(!gender) {
-
-            var nodeCircle = new SizeCircle(bubbleData[i].year, root, bubble, x, y, id, size, maleProportion, fullName, labelSpanish, labelSpace, margin, color, "node", i, slice, length);
+            if(analytics && analyticsExists) {
+                //document.getElementById("analytics-button").style.visibility="visible";
+                var nodeCircle = new Table(bubbleData[i].year, root, bubble, x, y, id, size, maleProportion, fullName, labelSpanish, labelSpace, margin, color, "node", i, slice, length);
+            }
+            else { 
+                var nodeCircle = new SizeCircle(bubbleData[i].year, root, bubble, x, y, id, size, maleProportion, fullName, labelSpanish, labelSpace, margin, color, "node", i, slice, length);
+            }
             root.nodeList.push(nodeCircle);
             nodeCircle.draw();
         
         } else {
-
-            var radialProgress = new Table(bubbleData[i].year, root, bubble, x, y, id, size, maleProportion, fullName, labelSpanish, labelSpace, margin, color, "node", i, slice, length);
+            if(analytics && analyticsExists) {
+                //document.getElementById("analytics-button").style.visibility="visible";
+                var radialProgress = new Table(bubbleData[i].year, root, bubble, x, y, id, size, maleProportion, fullName, labelSpanish, labelSpace, margin, color, "node", i, slice, length);
+            }
+            else {
+                var radialProgress = new RadialProgress(bubbleData[i].year, root, bubble, x, y, id, size, maleProportion, fullName, labelSpanish, labelSpace, margin, color, "node", i, slice, length);
+            }
             root.nodeList.push(radialProgress);
             radialProgress.draw();
         }
@@ -209,7 +262,7 @@ var drawBubbles = function(root) {
         root.connectionList.push(connection);
     }
     
-    //create transitions for the bubbles and lines (move them from the center to their final position)
+    //create transitions for the bubbles and lines (move them from the center to their final position
     for(var i in root.nodeList) {
         root.nodeList[i].move();
         root.connectionList[i].move();
@@ -223,7 +276,7 @@ var toRadians = function(angle) {
 
 //calculate text position for the faculties
 var textPosition = function(i, slice, startAngle, width, labelSpace) {
-    if((((i + 1) * slice + startAngle) % 360) < 180) {
+    if((((i + 1) * slice + startAngle) % 360) < 180) { 
         return [width/2, width - labelSpace + 16];
     }
     else {
@@ -235,18 +288,18 @@ var textPosition = function(i, slice, startAngle, width, labelSpace) {
 var onRootClick = function(root) {
 
     //if bubbles for the faculties are not opened, show them
-    if(!root.getParent().classed("open")) {
-        root.getParent().classed("open", true);
-        root.setClasses(root.getParent().attr("class"));
+    if(!root.parent.classed("open")) {
+        root.parent.classed("open", true);
+        root.classes = root.parent.attr("class");
         drawBubbles(root);
     }
 
     //if bubbles for the faculties are shown, remove them
     else {
-        root.getParent().classed("open", false);
-        root.setClasses(root.getParent().attr("class"));
+        root.parent.classed("open", false);
+        root.classes = root.parent.attr("class");
         for(var i in root.nodeList) {
-            if(root.nodeList[i].getParent().classed("open")) {
+            if(root.nodeList[i].parent.classed("open")) {
                 onRootClick(root.nodeList[i]);
             }
             root.nodeList[i].erase();
@@ -314,23 +367,22 @@ var mergeData = function(data1, data2) {
             }
         }
     }
-    console.log(data);
     return data;
 }
 
-//object tha draws lines between source and target bubbles
+//object that draws lines between source and target bubbles
 function Connection(connection, source, target, stroke, slice, position, len) {
-    var sourceR = source.getR();
-    var sourceX = source.getX() + source.getWidth()/2;
-    var sourceY = source.getY() + source.getWidth()/2;
-    var targetR = target.getR();
-    var targetX = target.getX() + target.getWidth()/2;
-    var targetY = target.getY() + target.getWidth()/2;
+    var sourceR = source.r;
+    var sourceX = source.x + source.width/2;
+    var sourceY = source.y + source.width/2;
+    var targetR = target.r;
+    var targetX = target.x + target.width/2;
+    var targetY = target.y + target.width/2;
     
     var startAngle = -10;
-    if(source.getRoot() !== null) {
+    if(source.root !== null) {
         slice = 360 / (len+1);
-        startAngle =(((+source.getPosition() + 1) * +source.getSlice() + 180) % 360) + 10;
+        startAngle =(((+source.position + 1) * + source.slice + 180) % 360) + 10;
     }
 
     var x1 = sourceX + Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * sourceR;
@@ -348,14 +400,16 @@ function Connection(connection, source, target, stroke, slice, position, len) {
 
     //move the target x and y
     this.move = function() {
-        var newX = (target.getX() + target.getWidth()/2) - Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * targetR;
-        var newY = (target.getY() + target.getWidth()/2) - Math.sin((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * targetR;
+        var newX = (target.x + target.width/2) - Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * targetR;
+        var newY = (target.y + target.width/2) - Math.sin((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * targetR;
         var transition = connection.transition()
-            .duration(5 * (target.getChosenLength() + targetR))
+            .duration(5 * (target.chosenLength + targetR))
             .ease("linear")
             .delay(0)
             .attr("x2", newX)
             .attr("y2", newY);
+        console.log(target.x + "x");
+        console.log(target.y + "y");
     }
 
     //erase lines after a transition efect
@@ -381,663 +435,444 @@ function Connection(connection, source, target, stroke, slice, position, len) {
 
 //create circles which size depends on the size of the faculties
 function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len) {
-    var tableData = tableData;
-    var parent = parent;
-    var x = x;
-    var y = y;
-    var id = id;
-    var size = size;
-    var fullName = fullName;
-    var labelSpanish = labelSpanish;
-    var labelSpace = labelSpace;
-    var margin = margin;
-    var color = color;
-    var classes = classes;
-    var position = position;
-    var slice = slice;
-    var len = len;
-    var value = value;
-    var root = root;
-    var me = this;
     
-    var r = Math.sqrt(size) * scaleFactor;
+    this.tableData = tableData;
+    this.parent = parent;
+    this.x = x;
+    this.y = y;
+    this.id = id;
+    this.size = size;
+    this.fullName = fullName;
+    this.labelSpanish = labelSpanish;
+    this.labelSpace = labelSpace;
+    this.margin = margin;
+    this.color = color;
+    this.classes = classes;
+    this.position = position;
+    this.slice = slice;
+    this.len = len;
+    this.value = value;
+    this.root = root;
+    
+    this.r;
+    this.lengths;
+    this.chosenLength;
+    this.width;
+    this.height;
+    this.fontSize;
+    this.startAngle;
+    this.svg;
 
-    //list of different length lines, a length is chosen randomly from the list
-    var lengths = [220, 210, 200, 190, 180, 170, 160]; 
-    var chosenLength = 160;
-    if(root != null) {
-        if(root.getClasses().indexOf("levelone") >= 0) {
-            lengths = [210, 200, 190, 180, 170, 160];
-            if(r < 20) {
-                r = 20;
-            }
-        }
-        else if (root.getClasses().indexOf("leveltwo") >= 0) {
-            lengths = [160, 150, 140, 130, 120, 110, 100];
-            if(r < 10) {
-                r = 10;
-            } 
-            
-        }
-    }
-    var width =  2 * r + 2 * margin + 2 * labelSpace;
-    var height = width;
-    var fontSize = r *.8;
-    var startAngle = -10;
-    
-    parent.classed(classes, true).attr("id", id);
-
-    var svg = parent.append("svg");
-    
     var circle;
     var text;
-    var label;
-
-    //getters for all attributes
-    this.getX = function() {
-        return x;
-    }
-
-    this.getY = function() {
-        return y;
-    }
-
-    this.getWidth = function() {
-        return width;
-    }
-
-    this.getR = function() {
-        return r;
-    }
-
-    this.getMargin = function() {
-        return margin;
-    }
-
-    this.getLabelSpace = function() {
-        return labelSpace;
-    }
-
-    this.getId = function() {
-        return id;
-    }
-
-    this.getSize = function() {
-        return size;
-    }
-
-    this.getFullName = function() {
-        return fullName;
-    }
-
-    this.getLabelSpanish = function() {
-        return labelSpanish;
-    }
-
-    this.getColor = function() {
-        return color;
-    }
-
-    this.getValue = function() {
-        return value;
-    }
-
-    this.getParent = function() {
-        return parent;
-    }
-
-    this.getRoot = function() {
-        return root;
-    }
-
-    this.getClasses = function() {
-        return classes;
-    }
-
-    this.getPosition = function() {
-        return position;
-    }
-
-    this.getSlice = function() {
-        return slice;
-    }
-
-    this.getLen = function() {
-        return len;
-    }
-
-    this.getChosenLength = function() {
-        return chosenLength;
-    }
-
-    this.setClasses = function(classed) {
-        classes = classed;
-    }
-
-    this.getTableData = function() {
-        return tableData;
-    }
-
-    this.getStartAngle = function() {
-        return startAngle;
-    }
-
-    this.setStartAngle = function(startAng) {
-        startAngle = startAng;
-    }
+    this.label;
 
     this.nodeList = [];
     this.connectionList = [];
+    
+    var me = this;
+
+    this.zoomTransition = function() {
+        
+        circle
+            .transition()
+            .duration(700)
+            .attr("cx", this.width/2)
+            .attr("cy", this.width/2)
+            .attr("r", this.r);
+
+        text
+            .transition().duration(700)
+            .style("font-size", "30px")
+            .attr('x', this.width/2)
+            .attr('y', this.width/2 + 30);
+
+        this.label
+            .transition().duration(700)
+            .style("font-size", "30px")
+            .style('fill', 'white')
+            .attr('x', this.width/2)
+            .attr('y', this.width/2);
+    }
 
     //draw a bubble 
     this.draw = function() {
-      
-        svg.attr("x", x)
-            .attr("y", y)
-            .attr("width", width)
-            .attr("height", height)
-            .attr("text", fullName)
+        this.calculateAttributes();
+        this.svg.attr("x", this.x)
+            .attr("y", this.y)
+            .attr("width", this.width)
+            .attr("height", this.height)
+            .attr("text", this.fullName)
 
-        svg.on("click", function(d){ 
-            
-            if(parent.classed("node")) {
-                parent.classed("node", false);
-                
-                if(!root.getParent().classed("levelone") && !root.getParent().classed("leveltwo")) {
-                    document.getElementById("back-button").style.visibility="visible";
-                    parent.classed("root levelone open", true);
-                    scaleFactor = Math.sqrt(sizeStandard) / Math.sqrt(size);
-                    x = root.getX();
-                    y = root.getY();
-                    r = r * scaleFactor;
-                    width =  2 * r + 2 * margin + 2 * labelSpace;
-                    height = width;
-                    fontSize = r *.8;
-                    root.nodeList.splice(position, 1);
-                    for(var i in root.nodeList) {
-                        root.nodeList[i].erase();
-                    }
-                    for(var i in root.connectionList) {
-                        root.connectionList[i].erase();
-                    }
-                    root.erase();
-                    rootBubble = me;
-                    root = null; 
-
-                    svg.transition()
-                       .duration(750)
-                       .attr("x",x)
-                       .attr("y",y) 
-                       .attr("width", width)
-                       .attr("height", height)
-
-                    circle
-                        .transition()
-                        .duration(700)
-                        .attr("cx", width/2)
-                        .attr("cy", width/2)
-                        .attr("r", r);
-
-                    text
-                        .transition().duration(700)
-                        .style("font-size", "30px")
-                        .attr('x', width/2)
-                        .attr('y', width/2 + 30);
-
-                    label
-                        .transition().duration(700)
-                        .style("font-size", "30px")
-                        .style('fill', 'white')
-                        .attr('x', width/2)
-                        .attr('y', width/2);
-                }
-                else {
-                    parent.classed("root leveltwo", true);
-                }
-                classes = parent.attr("class");
-            }
-            onRootClick(me);
+        this.svg.on("click", function(d){ 
+            me.handleClick();
         });
 
-        var group = svg.append("g")
+        var group = this.svg.append("g")
             .attr("cursor","pointer");
+        
         circle = group.append("circle")
-            .attr("cx", width/2)
-            .attr("cy", width/2)
-            .attr("r", r)
-            .attr("fill", color)
-            .classed(classes, true);
+            .attr("cx", this.width/2)
+            .attr("cy", this.width/2)
+            .attr("r", this.r)
+            .attr("fill", this.color)
+            .classed(this.classes, true);
 
         //append text for size
         text = group.append('text')
             .classed("size", true)
             .style('fill', 'white')
             .style("text-anchor", "middle")
-            .text(size);
+            .text(this.size);
 
-        if (parent.classed("root") && !parent.classed("leveltwo")) { 
+        if (this.parent.classed("root") && !this.parent.classed("leveltwo")) { 
             text.style("font-size", "30px")
-                .attr('x', width/2)
-                .attr('y', width/2 + 30);
+                .attr('x', this.width/2)
+                .attr('y', this.width/2 + 30);
             
         } else {
-            text.style("font-size", fontSize + "px")
+            text.style("font-size", this.fontSize + "px")
                 .classed("node", true)
-                .attr('x', width/2)
-                .attr('y', width/2 + fontSize/3);
+                .attr('x', this.width/2)
+                .attr('y', this.width/2 + this.fontSize/3);
         }
 
         //append labels
-        label = group.append("text")
-            .classed(classes, true)
+        this.label = group.append("text")
+            .classed(this.classes, true)
             .classed("label", true)
-            .text(labelSpanish)
+            .text(this.labelSpanish)
             .style("text-anchor", "middle")
 
-        if (parent.classed("root") && !parent.classed("leveltwo")) {    
-            label.style("font-size", "30px")
+        if (this.parent.classed("root") && !this.parent.classed("leveltwo")) {    
+            this.label.style("font-size", "30px")
                 .style('fill', 'white')
-                .attr('x', width/2)
-                .attr('y', width/2);    
+                .attr('x', this.width/2)
+                .attr('y', this.width/2);    
         }
         else {
-            label.style("font-size", "14px")
-                .style('fill', color)
-                .attr("x", textPosition(+position, +slice, +startAngle, width, labelSpace)[0])
-                .attr("y", textPosition(+position, +slice, +startAngle, width, labelSpace)[1]);
+            this.label.style("font-size", "14px")
+                .style('fill', this.color)
+                .attr("x", textPosition(+this.position, +this.slice, +this.startAngle, this.width, this.labelSpace)[0])
+                .attr("y", textPosition(+this.position, +this.slice, +this.startAngle, this.width, this.labelSpace)[1]);
         }
 
          //asign click and hover events to root bubble    
-        if(parent.classed("root")) {
-            svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
-            svg.on("mouseover", function(){
-                tooltip.attr("text", svg.attr("text"));
+        if(this.parent.classed("root")) {
+            this.svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
+            this.svg.on("mouseover", function(){
+                tooltip.attr("text", me.svg.attr("text"));
                 return tooltip.style("visibility", "visible");
             })
-            svg.on("mouseout", function(){return tooltip.style("visibility", "hidden"); })
+            this.svg.on("mouseout", function(){return tooltip.style("visibility", "hidden"); })
         }
 
-    }
-
-    //move the bubbles outside the center of the page on click
-    this.move = function() {
-
-        //randomly choose line length from a list of possible lengths
-        chosenLength = lengths[Math.floor(Math.random() * lengths.length)];
-        if (root.getClasses().indexOf("leveltwo") >= 0) {
-            if(position != 0 && len > 3) {
-                var previousChosenLength = root.nodeList[position - 1].getChosenLength();
-                if(chosenLength === previousChosenLength + 20 || chosenLength === previousChosenLength + 30 || chosenLength === previousChosenLength + 40) {
-                    chosenLength = previousChosenLength;
-                }
-            }
-        }
-
-        if(root.getRoot() !== null) {
-            slice = 360 / (len+1);
-            startAngle =(((+root.getPosition() + 1) * +root.getSlice() + 180) % 360) + 10;
-        }
-
-        //calculate new x and y
-        var newX = (+x + Math.cos(((+position + 1) * toRadians(+slice)) + toRadians(startAngle)) * (chosenLength + r));
-        var newY = (+y + Math.sin(((+position + 1) * toRadians(+slice)) + toRadians(startAngle)) * (chosenLength + r));
-        x = newX;
-        y = newY;
-
-        label
-            .attr("x", textPosition(+position, +slice, +startAngle, width, labelSpace)[0]) 
-            .attr("y", textPosition(+position, +slice, +startAngle, width, labelSpace)[1])
-
-        //create transition for svg
-        var transition = svg.transition()
-            .duration(5 * (chosenLength + r))
-            .ease("linear")
-            .delay(0)
-            .attr("x", x)
-            .attr("y", y)
-
-            //assign mouse events for non root bubbles
-            .each("end", function(d) {
-                me.addMouseEvents();
-            });
-                  
-    }
-
-    this.erase = function() {
-        d3.selectAll("[id='" + id +"']").remove();
     }
 
     this.addMouseEvents = function() {
-        svg.on("mouseover", function(){
+        this.svg.on("mouseover", function(){
                     
             //make small bubbles bigger on hover
-            if(r < 20) {
+            if(me.r < 20) {
                 
-                var newX = width/2 + Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * (r);
-                var newY = width/2 + Math.sin((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * (r);
-                var newWidth = width + 4 * r;
+                var newX = me.width/2 + Math.cos((+me.position + 1) * toRadians(+me.slice) + toRadians(+me.startAngle)) * (me.r);
+                var newY = me.width/2 + Math.sin((+me.position + 1) * toRadians(+me.slice) + toRadians(+me.startAngle)) * (me.r);
+                var newWidth = me.width + 4 * me.r;
                 var newHeight = newWidth;
-                var newFontSize = r * 1.6;
-                svg
+                var newFontSize = me.r * 1.6;
+                me.svg
                     .transition().duration(300).ease("linear").delay(0)
                     .attr("width", newWidth)
                     .attr("height", newHeight)
-                    .attr("x", x - 2 * r)
-                    .attr("y", y - 2 * r)
+                    .attr("x", me.x - 2 * me.r)
+                    .attr("y", me.y - 2 * me.r)
                     
                 circle
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("r", 2 * r)
-                    .attr("cx", newX + 2 * r)
-                    .attr("cy", newY + 2 * r)
+                    .attr("r", 2 * me.r)
+                    .attr("cx", newX + 2 * me.r)
+                    .attr("cy", newY + 2 * me.r)
 
                 text
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("x", newX + 2 * r)
-                    .attr("y", (newY + 2 * r) + newFontSize/3)
+                    .attr("x", newX + 2 * me.r)
+                    .attr("y", (newY + 2 * me.r) + newFontSize/3)
                     .style("font-size", newFontSize+"px");
 
-                label
+                me.label
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("x", newX + 2 * r) 
-                    .attr("y", textPosition(+position, +slice, +startAngle, newWidth, labelSpace)[1])   
+                    .attr("x", newX + 2 * me.r) 
+                    .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, newWidth, me.labelSpace)[1])   
             }
 
-            tooltip.attr("text", svg.attr("text"));
+            tooltip.attr("text", me.svg.attr("text"));
             return tooltip.style("visibility", "visible"); 
         });
-        svg.on("mouseout", function(){
+
+        this.svg.on("mouseout", function(){
             
             //change bubbles back to original size on mouse out
-            if(r < 20) {
-                svg
+            if(me.r < 20) {
+                me.svg
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("width", width)
-                    .attr("height", width)
-                    .attr("x", x)
-                    .attr("y", y)  
+                    .attr("width", me.width)
+                    .attr("height", me.width)
+                    .attr("x", me.x)
+                    .attr("y", me.y)  
                 circle
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("r", r)
-                    .attr("cx", width/2)
-                    .attr("cy", width/2)
+                    .attr("r", me.r)
+                    .attr("cx", me.width/2)
+                    .attr("cy", me.width/2)
 
                 text
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("x", width/2)
-                    .attr("y", width/2 + fontSize/3)
-                    .style("font-size", fontSize+"px");
+                    .attr("x", me.width/2)
+                    .attr("y", me.width/2 + me.fontSize/3)
+                    .style("font-size", me.fontSize+"px");
 
-                label
+                me.label
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("x", textPosition(+position, +slice, +startAngle, width, labelSpace)[0])
-                    .attr("y", textPosition(+position, +slice, +startAngle, width, labelSpace)[1])
+                    .attr("x", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[0])
+                    .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[1])
             }
             return tooltip.style("visibility", "hidden");           
         }); 
-        svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
+
+        this.svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
     }
+}
+
+SizeCircle.prototype.erase = function() {
+    d3.selectAll("[id='" + this.id +"']").remove();
+}
+
+SizeCircle.prototype.calculateAttributes = function() {
+    this.r = Math.sqrt(this.size) * scaleFactor;
+
+    //list of different length lines, a length is chosen randomly from the list
+    this.lengths = [220, 210, 200, 190, 180, 170, 160]; 
+    this.chosenLength = 160;
+    if(this.root != null) {
+        if(this.root.classes.indexOf("levelone") >= 0) {
+            this.lengths = [210, 200, 190, 180, 170, 160];
+            if (this.r < 20) {
+                this.r = 20;
+            }
+        }
+        else if (this.root.classes.indexOf("leveltwo") >= 0) {
+            this.lengths = [160, 150, 140, 130, 120, 110, 100];
+            if (this.r < 10) {
+                this.r = 10;
+            }         
+        }
+    }
+    this.width =  2 * this.r + 2 * this.margin + 2 * this.labelSpace;
+    this.height = this.width;
+    this.fontSize = this.r *.7;
+    if (typeof this.startAngle == 'undefined') {
+        this.startAngle = -10;
+    }
+    
+    this.parent.classed(this.classes, true).attr("id", this.id);
+
+    this.svg =this.parent.append("svg");
+}
+
+SizeCircle.prototype.handleClick = function() {
+    if(this.parent.classed("node")) {
+        this.parent.classed("node", false);    
+        if(!this.root.parent.classed("levelone") && !this.root.parent.classed("leveltwo")) {
+            document.getElementById("back-button").style.visibility="visible";
+            this.parent.classed("root levelone open", true);
+            scaleFactor = Math.sqrt(sizeStandard) / Math.sqrt(this.size);
+            this.x = this.root.x;
+            this.y = this.root.y;
+            this.r = this.r * scaleFactor;
+            this.width =  2 * this.r + 2 * this.margin + 2 * this.labelSpace;
+            this.height = this.width;
+            this.fontSize = this.r *.8;
+            this.root.nodeList.splice(this.position, 1);
+            if (typeof this.radialWidth != 'undefined') {
+                this.radialWidth = 2 * this.r;
+            }
+
+            for(var i in this.root.nodeList) {
+                this.root.nodeList[i].erase();
+            }
+            for(var i in this.root.connectionList) {
+                this.root.connectionList[i].erase();
+            }
+            this.root.erase();
+            rootBubble = this;
+            this.root = null; 
+
+            this.svg.transition()
+               .duration(750)
+               .attr("x",this.x)
+               .attr("y",this.y) 
+               .attr("width", this.width)
+               .attr("height", this.height)
+            
+            this.zoomTransition();
+           
+        }
+        else {
+            this.parent.classed("root leveltwo", true);
+        }
+        this.classes = this.parent.attr("class");
+    }
+    onRootClick(this);
+}
+
+
+//move the bubbles outside the center of the page on click
+SizeCircle.prototype.move = function() {
+    var me = this;
+    //randomly choose line length from a list of possible lengths
+    this.chosenLength = this.lengths[Math.floor(Math.random() * this.lengths.length)];
+    if (this.root.classes.indexOf("leveltwo") >= 0) {
+        if(this.position != 0 && this.len > 3) {
+            var previousChosenLength = this.root.nodeList[this.position - 1].chosenLength;
+            if(this.chosenLength === previousChosenLength + 20 || this.chosenLength === previousChosenLength + 30 || this.chosenLength === previousChosenLength + 40) {
+                this.chosenLength = previousChosenLength;
+            }
+        }
+    }
+
+    if(this.root.root !== null) {
+        this.slice = 360 / (this.len+1);
+        this.startAngle =(((+this.root.position + 1) * +this.root.slice + 180) % 360) + 10;
+    }
+
+    //calculate new x and y
+    var newX = (+this.x + Math.cos(((+this.position + 1) * toRadians(+this.slice)) + toRadians(this.startAngle)) * (this.chosenLength + this.r));
+    var newY = (+this.y + Math.sin(((+this.position + 1) * toRadians(+this.slice)) + toRadians(this.startAngle)) * (this.chosenLength + this.r));
+    this.x = newX;
+    this.y = newY;
+
+    this.label
+        .attr("x", textPosition(+this.position, +this.slice, +this.startAngle, this.width, this.labelSpace)[0]) 
+        .attr("y", textPosition(+this.position, +this.slice, +this.startAngle, this.width, this.labelSpace)[1])
+
+    //create transition for svg
+    var transition = this.svg.transition()
+        .duration(5 * (this.chosenLength + this.r))
+        .ease("linear")
+        .delay(0)
+        .attr("x", this.x)
+        .attr("y", this.y)
+
+        //assign mouse events for non root bubbles
+        .each("end", function(d) {
+            me.addMouseEvents();
+        });             
 }
 
 //creating radial progress that shows gender distribution of faculties
 function RadialProgress(tableData, root, parent, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len) { 
-    var parent = parent;
-    var x = x;
-    var y = y;
-    var id = id;
-    var size = size;
-    var fullName = fullName;
-    var labelSpanish = labelSpanish;
-    var labelSpace = labelSpace;
-    var margin = margin;
-    var color = color;
-    var classes = classes;
-    var position = position;
-    var slice = slice;
-    var len = len;
-    var value = value;
+    this.parent = parent;
+    this.x = x;
+    this.y = y;
+    this.id = id;
+    this.size = size;
+    this.fullName = fullName;
+    this.labelSpanish = labelSpanish;
+    this.labelSpace = labelSpace;
+    this.margin = margin;
+    this.color = color;
+    this.classes = classes;
+    this.position = position;
+    this.slice = slice;
+    this.len = len;
+    this.value = value;
+    this.root = root;
+    this.tableData = tableData;
+
     var me = this;
     
     var duration = 1000;   
-       
     var minValue = 0,
         maxValue = 100;
-
-    var  currentArc= 0, currentValue=0;
-
+    var currentArc = 0, currentValue = 0;
     var arc = d3.svg.arc()
         .startAngle(0 * (Math.PI/180)); //just radians
-    var r = Math.sqrt(size) * scaleFactor;
 
-    //list of different length lines, a length is chosen randomly from the list
-    var lengths = [220, 210, 200, 190, 180, 170, 160]; 
-    var chosenLength = 160;
-    if(root != null) {
-        if(root.getClasses().indexOf("levelone") >= 0) {
-            lengths = [210, 200, 190, 180, 170, 160];
-            if(r < 20) {
-                r = 20;
-            }
-        }
-        else if (root.getClasses().indexOf("leveltwo") >= 0) {
-            lengths = [160, 150, 140, 130, 120, 110, 100];
-            if(r < 10) {
-                r = 10;
-            } 
-            
-        }
-    }
 
-    var width = 2 * r + 2 * margin + 2 * labelSpace;
-    var height = width;
-    var radialWidth = 2 * r;
-    var startAngle = - 10;
+    this.calculateAttributes();  
+    this.radialWidth = 2 * this.r;
     
-    var fontSize = radialWidth*.35;
-    arc.outerRadius(radialWidth/2);
-    arc.innerRadius(radialWidth/2 * .85);
+    arc.outerRadius(this.radialWidth/2);
+    arc.innerRadius(this.radialWidth/2 * .85);
 
-    parent.classed(classes, true).attr("id", id);
-    var svg = parent.append("svg");
     var rect;
     var wholePath;
     var path;
     var proportion;
-    var label;
-
-    //getters for attributes needed outside the class
-    this.getX = function() {
-        return x;
-    }
-
-    this.getY = function() {
-        return y;
-    }
-
-    this.getWidth = function() {
-        return width;
-    }
-
-    this.getR = function() {
-        return r;
-    }
-
-    this.getMargin = function() {
-        return margin;
-    }
-
-    this.getLabelSpace = function() {
-        return labelSpace;
-    }
-
-    this.getId = function() {
-        return id;
-    }
-
-    this.getSize = function() {
-        return size;
-    }
-
-    this.getFullName = function() {
-        return fullName;
-    }
-
-    this.getLabelSpanish = function() {
-        return labelSpanish;
-    }
-
-    this.getColor = function() {
-        return color;
-    }
-
-    this.getValue = function() {
-        return value;
-    }
-
-    this.getParent = function() {
-        return parent;
-    }
-
-    this.getRoot = function() {
-        return root;
-    }
-
-    this.getClasses = function() {
-        return classes;
-    }
-
-    this.getPosition = function() {
-        return position;
-    }
-
-    this.getSlice = function() {
-        return slice;
-    }
-
-    this.getLen = function() {
-        return len;
-    }
-
-    this.getChosenLength = function() {
-        return chosenLength;
-    }
-
-    this.setClasses = function(classed) {
-        classes = classed;
-    }
-
-    this.getStartAngle = function() {
-        return startAngle;
-    }
-
-    this.setStartAngle = function(startAng) {
-        startAngle = startAng;
-    }
-
-
-
+    this.label;
 
     this.nodeList = [];
     this.connectionList = [];
 
+    this.zoomTransition = function() {
+        arc.outerRadius(this.radialWidth/2);
+        arc.innerRadius(this.radialWidth/2 * .85);
+        arc.endAngle(360 * (Math.PI/180))
+
+        rect
+            .transition().duration(700)
+            .attr("width", this.radialWidth)
+            .attr("height", this.radialWidth)
+            .attr("x", this.labelSpace + this.margin)
+            .attr("y", this.labelSpace + this.margin);
+
+        wholePath
+            .transition().duration(700)
+            .attr("transform", "translate(" + (this.width/2) + "," + (this.width/2) + ")")
+            .attr("d", arc);
+
+        arc.endAngle(currentArc);
+
+        path
+            .transition().duration(700)
+            .attr("transform", "translate(" + (this.width/2) + "," + (this.width/2) + ")")
+            .attr("d", arc);
+
+        this.label
+            .transition().duration(700)
+            .style("font-size", "27px")
+            .attr('x', this.width/2)
+            .attr('y', this.width/2);
+
+        proportion
+            .transition().duration(700)
+            .attr("y", this.width/2 + 27)
+            .attr("x", this.width/2)
+            .style("font-size", "27px")
+    }
+
     //draw radial progress
     this.draw = function() {
 
-        svg.attr("x", x)
-            .attr("y", y)
-            .attr("width", width)
-            .attr("height", height)
-            .attr("text", fullName)
+        this.svg.attr("x", this.x)
+            .attr("y", this.y)
+            .attr("width", this.width)
+            .attr("height", this.height)
+            .attr("text", this.fullName)
       
         //asign click and hover events to root radial progress
-        svg.on("click", function(d){ 
-            
-            if(parent.classed("node")) {
-                parent.classed("node", false);
-                
-                if(!root.getParent().classed("levelone") && !root.getParent().classed("leveltwo")) {
-                    document.getElementById("back-button").style.visibility="visible";
-                    parent.classed("root levelone open", true);
-                    scaleFactor = Math.sqrt(sizeStandard) / Math.sqrt(size);
-                    x = root.getX();
-                    y = root.getY();
-                    r = r * scaleFactor;
-                    radialWidth = 2 * r;
-                    width =  2 * r + 2 * margin + 2 * labelSpace;
-                    height = width;
-                    fontSize = r *.8;
-                    root.nodeList.splice(position, 1);
-                    for(var i in root.nodeList) {
-                        root.nodeList[i].erase();
-                    }
-                    for(var i in root.connectionList) {
-                        root.connectionList[i].erase();
-                    }
-                    root.erase();
-                    rootBubble = me;
-                    root = null; 
-
-                    fontSize = 27;
-                    
-
-                    svg.transition()
-                       .duration(750)
-                       .attr("x",x)
-                       .attr("y",y) 
-                       .attr("width", width)
-                       .attr("height", height)
-
-                    arc.outerRadius(radialWidth/2);
-                    arc.innerRadius(radialWidth/2 * .85);
-                    arc.endAngle(360 * (Math.PI/180))
-
-                    rect
-                        .transition().duration(700)
-                        .attr("width", radialWidth)
-                        .attr("height", radialWidth)
-                        .attr("x", labelSpace + margin)
-                        .attr("y", labelSpace + margin);
-
-                    wholePath
-                        .transition().duration(700)
-                        .attr("transform", "translate(" + (width/2) + "," + (width/2) + ")")
-                        .attr("d", arc);
-
-                    arc.endAngle(currentArc);
-
-                    path
-                        .transition().duration(700)
-                        .attr("transform", "translate(" + (width/2) + "," + (width/2) + ")")
-                        .attr("d", arc);
-
-                    label
-                        .transition().duration(700)
-                        .style("font-size", fontSize)
-                        .attr('x', width/2)
-                        .attr('y', width/2);
-
-                    proportion
-                        .transition().duration(700)
-                        .attr("y", width/2 + fontSize)
-                        .attr("x", width/2)
-                        .style("font-size", fontSize+"px")
-                }
-                else {
-                    parent.classed("root leveltwo", true);
-                }
-                classes = parent.attr("class");
-            }
-            onRootClick(me);
+        this.svg.on("click", function(d){ 
+            me.handleClick();
         });
     
-        svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
-        svg.on("mouseover", function(){
-            tooltip.attr("text", svg.attr("text"));
+        this.svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
+        this.svg.on("mouseover", function(){
+            tooltip.attr("text", me.svg.attr("text"));
             return tooltip.style("visibility", "visible");
         })
-        svg.on("mouseout", function(){return tooltip.style("visibility", "hidden"); })
+        this.svg.on("mouseout", function(){return tooltip.style("visibility", "hidden"); })
 
-        var background = svg.append("g").attr("class","component")
+        var background = this.svg.append("g").attr("class","component")
             .attr("cursor","pointer")
 
         arc.endAngle(360 * (Math.PI/180))
@@ -1045,73 +880,73 @@ function RadialProgress(tableData, root, parent, x, y, id, size, value, fullName
         //draw background 
         rect = background.append("rect")
             .attr("class","background")
-            .attr("width", radialWidth)
-            .attr("height", radialWidth)
-            .attr("x", labelSpace + margin)
-            .attr("y", labelSpace + margin)
+            .attr("width", this.radialWidth)
+            .attr("height", this.radialWidth)
+            .attr("x", this.labelSpace + this.margin)
+            .attr("y", this.labelSpace + this.margin)
 
         //draw whole circular path
         wholePath = background.append("path")
-            .attr("transform", "translate(" + (width/2) + "," + (width/2) + ")")
+            .attr("transform", "translate(" + (this.width/2) + "," + (this.width/2) + ")")
             .attr("d", arc)
 
         //append labels
-        label = background.append("text")
+       this.label = background.append("text")
             .attr("class", "label")
-            .text(labelSpanish)
+            .text(this.labelSpanish)
 
-        if (parent.classed("root") && !parent.classed("leveltwo")) { 
-             label.style("font-size", "27px")
-                .style('fill', color)
-                .attr('x', width/2)
-                .attr('y', width/2);
+        if (this.parent.classed("root") && !this.parent.classed("leveltwo")) { 
+            this.label.style("font-size", "27px")
+                .style('fill', this.color)
+                .attr('x', this.width/2)
+                .attr('y', this.width/2);
         }
 
         else {
-            label.style("font-size", "14px")
-                .style('fill', color)
-                .attr("x", textPosition(+position, +slice, +startAngle, width, labelSpace)[0])
-                .attr("y", textPosition(+position, +slice, +startAngle, width, labelSpace)[1]);   
+            this.label.style("font-size", "14px")
+                .style('fill', this.color)
+                .attr("x", textPosition(+this.position, +this.slice, +this.startAngle, this.width, this.labelSpace)[0])
+                .attr("y", textPosition(+this.position, +this.slice, +this.startAngle, this.width, this.labelSpace)[1]);   
         }
     
         arc.endAngle(currentArc);
-        svg.append("g").attr("class", "arcs");
+        this.svg.append("g").attr("class", "arcs");
 
         //draw path for male proportion
-        path = svg.select(".arcs").selectAll(".arc").data([1]);
+        path = this.svg.select(".arcs").selectAll(".arc").data([1]);
         path.enter().append("path")
             .attr("class","arc")
-            .attr("transform", "translate(" + (width/2) + "," + (width/2) + ")")
+            .attr("transform", "translate(" + (this.width/2) + "," + (this.width/2) + ")")
             .attr("d", arc);
 
 
-        svg.append("g").attr("class", "labels");
+        this.svg.append("g").attr("class", "labels");
 
         //add male proportion number in the middle of the bubble
-        proportion = svg.select(".labels").selectAll(".label").data([1]);
+        proportion = this.svg.select(".labels").selectAll(".label").data([1]);
         proportion.enter().append("text")
             .attr("class","label")
-            .attr("y", width/2 + fontSize/3)
-            .attr("x", width/2)
+            .attr("y", this.width/2 + this.fontSize/3)
+            .attr("x", this.width/2)
             .attr("cursor","pointer")
-            .attr("width", radialWidth)
-            .text(function (d) { return Math.round((value - minValue)/(maxValue - minValue)*100) + "%" })
-            .style("font-size", fontSize+"px")
-            .style('fill', color);
+            .attr("width", this.radialWidth)
+            .text(function(d) { return Math.round((this.value - minValue)/(maxValue - minValue)*100) + "%" })
+            .style("font-size", this.fontSize+"px")
+            .style('fill', this.color);
 
-        if(parent.classed("root") && !parent.classed("leveltwo")) {
-            fontSize = 30;
-            proportion.attr("y", width/2 + fontSize)
-                 .attr("x", width/2)
-                 .style("font-size", fontSize+"px")
+        if(this.parent.classed("root") && !this.parent.classed("leveltwo")) {
+            this.fontSize = 30;
+            proportion.attr("y", this.width/2 + this.fontSize)
+                 .attr("x", this.width/2)
+                 .style("font-size", this.fontSize+"px")
         }
 
-        layout(svg);
+        layout(this.svg);
 
         function layout(svg) {
 
             //animate path and proportion
-            var ratio=(value - minValue)/(maxValue - minValue);
+            var ratio=(me.value - minValue)/(maxValue - minValue);
             var endAngle=Math.min(360*ratio,360);
             endAngle=endAngle * Math.PI/180;
 
@@ -1145,361 +980,196 @@ function RadialProgress(tableData, root, parent, x, y, id, size, value, fullName
         };
     }
 
-    //move the bubble from the center
-    this.move = function() {
-        
-        //choose line length randomly from the list of possible lengths
-        chosenLength = lengths[Math.floor(Math.random() * lengths.length)];
-        if (root.getClasses().indexOf("leveltwo") >= 0) {
-            if(position != 0 && len > 3) {
-                var previousChosenLength = root.nodeList[position - 1].getChosenLength();
-                if(chosenLength === previousChosenLength + 20 || chosenLength === previousChosenLength + 30 || chosenLength === previousChosenLength + 40) {
-                    chosenLength = previousChosenLength;
-                }
-            }
-        }
-
-        if(root.getRoot() !== null) {
-            slice = 360 / (len+1);
-            startAngle = (((+root.getPosition() + 1) * +root.getSlice() + 180) % 360) + 10;
-        }
-
-        //calculate new x and y
-        var newX = (+x + Math.cos(((+position + 1) * toRadians(+slice)) + toRadians(startAngle)) * (chosenLength + r));
-        var newY = (+y + Math.sin(((+position + 1) * toRadians(+slice)) + toRadians(startAngle)) * (chosenLength + r));
-        x = newX;
-        y = newY;
-
-        label
-            .attr("x", textPosition(+position, +slice, +startAngle, width, labelSpace)[0]) 
-            .attr("y", textPosition(+position, +slice, +startAngle, width, labelSpace)[1])
-
-        var transition = svg.transition()
-            .duration(5 * (chosenLength + r))
-            .ease("linear")
-            .delay(0)
-            .attr("x", newX)
-            .attr("y", newY) 
-            .each("end", function(d) {
-                me.addMouseEvents();
-            });    
-    }
-
-    this.erase = function() {
-        d3.selectAll("[id='" + id +"']").remove();
-    }
-
     this.addMouseEvents = function() {
 
         //assign hover events to non root bubbles
-        svg.on("mouseover", function(){
+        this.svg.on("mouseover", function(){
 
             //make small bubbles bigger on hover
-            if(r < 20) {
+            if(me.r < 20) {
                 
-                var newX = width/2 + Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * (r);
-                var newY = width/2 + Math.sin((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * (r);
-                var newWidth = width + 4 * r;
+                var newX = me.width/2 + Math.cos((+me.position + 1) * toRadians(+me.slice) + toRadians(me.startAngle)) * (me.r);
+                var newY = me.width/2 + Math.sin((+me.position + 1) * toRadians(+me.slice) + toRadians(me.startAngle)) * (me.r);
+                var newWidth = me.width + 4 * me.r;
                 var newHeight = newWidth;
-                svg
+                me.svg
                     .transition().duration(300).ease("linear").delay(0)
                     .attr("width", newWidth)
                     .attr("height", newHeight)
-                    .attr("x", x - 2 * r)
-                    .attr("y", y - 2 * r)
+                    .attr("x", me.x - 2 * me.r)
+                    .attr("y", me.y - 2 * me.r)
                     
                 rect
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("width", 2 * radialWidth)
-                    .attr("height", 2 * radialWidth)
+                    .attr("width", 2 * me.radialWidth)
+                    .attr("height", 2 * me.radialWidth)
                     .attr("x", newX)
                     .attr("y", newY)
 
                 arc
-                    .outerRadius(radialWidth)
-                    .innerRadius(radialWidth * .85);
+                    .outerRadius(me.radialWidth)
+                    .innerRadius(me.radialWidth * .85);
                 
                 arc.endAngle(360 * (Math.PI/180))
 
                 wholePath 
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("transform", "translate(" + (newX + 2 * r) + "," + (newY + 2 * r) + ")")
+                    .attr("transform", "translate(" + (newX + 2 * me.r) + "," + (newY + 2 * me.r) + ")")
                     .attr("d", arc)
 
                 arc.endAngle(currentArc);
 
                 path
                     .transition().duration(300).ease("linear").delay(0) 
-                    .attr("transform", "translate(" + (newX + 2 * r) + "," + (newY + 2 * r) + ")")
+                    .attr("transform", "translate(" + (newX + 2 * me.r) + "," + (newY + 2 * me.r) + ")")
                     .attr("d", arc)
                    
                 proportion
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("x", newX + 2 * r)
-                    .attr("y", (newY + 2 * r) + (2 * fontSize/3))
-                    .style("font-size", 2 * fontSize +"px");
+                    .attr("x", newX + 2 * me.r)
+                    .attr("y", (newY + 2 * me.r) + (2 * me.fontSize/3))
+                    .style("font-size", 2 * me.fontSize +"px");
 
-                label
+                me.label
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("x", newX + 2 * r) 
-                    .attr("y", textPosition(+position, +slice, +startAngle, newWidth, labelSpace)[1])   
+                    .attr("x", newX + 2 * me.r) 
+                    .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, newWidth, me.labelSpace)[1])   
             }
 
-            tooltip.attr("text", svg.attr("text"));
+            tooltip.attr("text", me.svg.attr("text"));
             return tooltip.style("visibility", "visible"); 
         });
 
         //on mouse out change small bubbles back to original size
-        svg.on("mouseout", function(){
-            if(r < 20) {
-                svg
+        this.svg.on("mouseout", function(){
+            if(me.r < 20) {
+                me.svg
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("width", width)
-                    .attr("height", width)
-                    .attr("x", x)
-                    .attr("y", y)  
+                    .attr("width", me.width)
+                    .attr("height", me.width)
+                    .attr("x", me.x)
+                    .attr("y", me.y)  
                 rect
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("x", labelSpace + margin)
-                    .attr("y", labelSpace + margin)
+                    .attr("x", me.labelSpace + me.margin)
+                    .attr("y", me.labelSpace + me.margin)
 
                 arc
-                    .outerRadius(radialWidth/2)
-                    .innerRadius(radialWidth/2 * .85);
+                    .outerRadius(me.radialWidth/2)
+                    .innerRadius(me.radialWidth/2 * .85);
                 
                 arc.endAngle(360 * (Math.PI/180))
 
                 wholePath 
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("transform", "translate(" + width/2 + "," + width/2 + ")")
+                    .attr("transform", "translate(" + me.width/2 + "," + me.width/2 + ")")
                     .attr("d", arc)
 
                 arc.endAngle(currentArc);
 
                 path
                     .transition().duration(300).ease("linear").delay(0) 
-                    .attr("transform", "translate(" + width/2 + "," + width/2 + ")")
+                    .attr("transform", "translate(" + me.width/2 + "," + me.width/2 + ")")
                     .attr("d", arc)
                    
                 proportion
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("x", width/2)
-                    .attr("y", width/2 + fontSize/3)
-                    .style("font-size", fontSize +"px");
+                    .attr("x", me.width/2)
+                    .attr("y", me.width/2 + me.fontSize/3)
+                    .style("font-size", me.fontSize +"px");
 
-                label
+                me.label
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("x", textPosition(+position, +slice, +startAngle, width, labelSpace)[0]) 
-                    .attr("y", textPosition(+position, +slice, +startAngle, width, labelSpace)[1])   
+                    .attr("x", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[0]) 
+                    .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[1])   
             }
             return tooltip.style("visibility", "hidden");           
         }); 
-        svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
+        this.svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
  
     }
 }
 
 function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len) { 
-    var tableData = tableData;
-    var parent = parent;
-    var x = x;
-    var y = y;
-    var id = id;
-    var size = size;
-    var fullName = fullName;
-    var labelSpanish = labelSpanish;
-    var labelSpace = labelSpace;
-    var margin = margin;
-    var color = color;
-    var classes = classes;
-    var position = position;
-    var slice = slice;
-    var len = len;
-    var value = value;
+    this.tableData = tableData;
+    this.parent = parent;
+    this.x = x;
+    this.y = y;
+    this.id = id;
+    this.size = size;
+    this.fullName = fullName;
+    this.labelSpanish = labelSpanish;
+    this.labelSpace = labelSpace;
+    this.margin = margin;
+    this.color = color;
+    this.classes = classes;
+    this.position = position;
+    this.slice = slice;
+    this.len = len;
+    this.value = value;
+    this.root = root;
     var me = this;
-    console.log(tableData);
-    
-    
-    var r = Math.sqrt(size) * scaleFactor;
 
-    //list of different length lines, a length is chosen randomly from the list
-    var lengths = [220, 210, 200, 190, 180, 170, 160]; 
-    var chosenLength = 160;
-    if(root != null) {
-        if(root.getClasses().indexOf("levelone") >= 0) {
-            lengths = [210, 200, 190, 180, 170, 160];
-            if(r < 20) {
-                r = 20;
-            }
-        }
-        else if (root.getClasses().indexOf("leveltwo") >= 0) {
-            lengths = [160, 150, 140, 130, 120, 110, 100];
-            if(r < 10) {
-                r = 10;
-            } 
-            
-        }
-    }
-    var radialWidth = 2 * r;
-    var width = 2 * r + 2 * margin + 2 * labelSpace;
-    var height = width;
-    var startAngle = - 10;
-    
-    var fontSize = radialWidth*.35;
-
-    parent.classed(classes, true).attr("id", id);
-    var svg = parent.append("svg");
-    var rect;
-    var label;
-
-    //getters for attributes needed outside the class
-    this.getX = function() {
-        return x;
-    }
-
-    this.getY = function() {
-        return y;
-    }
-
-    this.getWidth = function() {
-        return width;
-    }
-
-    this.getR = function() {
-        return r;
-    }
-
-    this.getMargin = function() {
-        return margin;
-    }
-
-    this.getLabelSpace = function() {
-        return labelSpace;
-    }
-
-    this.getId = function() {
-        return id;
-    }
-
-    this.getSize = function() {
-        return size;
-    }
-
-    this.getFullName = function() {
-        return fullName;
-    }
-
-    this.getLabelSpanish = function() {
-        return labelSpanish;
-    }
-
-    this.getColor = function() {
-        return color;
-    }
-
-    this.getValue = function() {
-        return value;
-    }
-
-    this.getParent = function() {
-        return parent;
-    }
-
-    this.getRoot = function() {
-        return root;
-    }
-
-    this.getClasses = function() {
-        return classes;
-    }
-
-    this.getPosition = function() {
-        return position;
-    }
-
-    this.getSlice = function() {
-        return slice;
-    }
-
-    this.getLen = function() {
-        return len;
-    }
-
-    this.getChosenLength = function() {
-        return chosenLength;
-    }
-
-    this.setClasses = function(classed) {
-        classes = classed;
-    }
-
-    this.getTableData = function() {
-        return tableData;
-    }
-
-    this.getStartAngle = function() {
-        return startAngle;
-    }
-
-    this.setStartAngle = function(startAng) {
-        startAngle = startAng;
-    }
+    var titles = [];
+    var boxes = [];
+    var tableLabels = [];
 
     this.nodeList = [];
     this.connectionList = [];
 
+    this.calculateAttributes();
+    this.radialWidth = 2 * this.r;
+
+    this.label;
+
     //draw radial progress
     this.draw = function() {
+       
 
-        svg.attr("x", x)
-            .attr("y", y)
-            .attr("width", width)
-            .attr("height", height)
-            .attr("text", fullName)
+        this.svg.attr("x", this.x)
+            .attr("y", this.y)
+            .attr("width", this.width)
+            .attr("height", this.height)
+            .attr("text", this.fullName)
       
         //asign click and hover events to root radial progress
-        svg.on("click", function(d){ 
+        this.svg.on("click", function(d){ 
             
-            if(parent.classed("node")) {
-                parent.classed("node", false);
+            if(me.parent.classed("node")) {
+                me.parent.classed("node", false);
                 
-                if(!root.getParent().classed("levelone") && !root.getParent().classed("leveltwo")) {
-                    document.getElementById("back-button").style.visibility="visible";
-                    parent.classed("root levelone open", true);
-                    scaleFactor = Math.sqrt(sizeStandard) / Math.sqrt(size);
-                    x = root.getX();
-                    y = root.getY();
-                    r = r * scaleFactor;
-                    radialWidth = 2 * r;
-                    width =  2 * r + 2 * margin + 2 * labelSpace;
-                    height = width;
-                    fontSize = r *.8;
-                    root.nodeList.splice(position, 1);
-                    for(var i in root.nodeList) {
-                        root.nodeList[i].erase();
+                if(!me.root.parent.classed("levelone") && !me.root.parent.classed("leveltwo")) {
+                    document.getElementById("back-button").style.visibility = "visible";
+                    me.parent.classed("root levelone open", true);
+                    scaleFactor = Math.sqrt(sizeStandard) / Math.sqrt(me.size);
+                    me.x = me.root.x;
+                    me.y = me.root.y;
+                    me.r = me.r * scaleFactor;
+                    me.radialWidth = 2 * me.r;
+                    me.width =  2 * me.r + 2 * me.margin + 2 * me.labelSpace;
+                    me.height = me.width;
+                    me.fontSize = me.r *.8;
+                    me.root.nodeList.splice(me.position, 1);
+                    for(var i in me.root.nodeList) {
+                        me.root.nodeList[i].erase();
                     }
-                    for(var i in root.connectionList) {
-                        root.connectionList[i].erase();
+                    for(var i in me.root.connectionList) {
+                        me.root.connectionList[i].erase();
                     }
-                    root.erase();
+                    me.root.erase();
                     rootBubble = me;
-                    root = null; 
+                    me.root = null; 
 
-                    svg.transition()
+                    me.svg.transition()
                        .duration(750)
                        .attr("x",x)
                        .attr("y",y) 
                        .attr("width", width)
                        .attr("height", height)
 
-                    rect
-                        .transition().duration(700)
-                        .attr("width", radialWidth)
-                        .attr("height", radialWidth)
-                        .attr("x", labelSpace + margin)
-                        .attr("y", labelSpace + margin);
+                    
 
-                    label
+                    me.label
                         .transition().duration(700)
                         .style("font-size", fontSize)
                         .attr('x', width/2)
@@ -1513,18 +1183,18 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
             onRootClick(me);
         });
     
-        svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
-        svg.on("mouseover", function(){
-            tooltip.attr("text", svg.attr("text"));
+        this.svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
+        this.svg.on("mouseover", function(){
+            tooltip.attr("text", me.svg.attr("text"));
             return tooltip.style("visibility", "visible");
         })
-        svg.on("mouseout", function(){return tooltip.style("visibility", "hidden"); })
+        this.svg.on("mouseout", function(){return tooltip.style("visibility", "hidden"); })
 
-        var background = svg.append("g").attr("class","component")
+        var background = this.svg.append("g").attr("class","component")
             .attr("cursor","pointer")
 
         //draw background 
-        rect = background.append("rect")
+        /*rect = background.append("rect")
             .attr("class","frame")
             .attr("width", radialWidth)
             .attr("height", radialWidth)
@@ -1534,125 +1204,97 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
             .attr("rx", radialWidth/4)
             .attr("ry", radialWidth/4)
             .style("stroke", "black")
-            .style("stroke-width", 1);
+            .style("stroke-width", 1);*/
+
 
         for(var i = 0; i < 10; i++) {
-            background.append("rect")
-                .attr("width", radialWidth)
-                .attr("height", radialWidth/10)
-                .attr("x", labelSpace + margin)
-                .attr("y", labelSpace + margin + i * radialWidth/10)
-                .attr("fill", color)
-                .style("stroke", "white")
-                .style("stroke-width", 1);
+            if(i!=0 && i!=4 && i!=7) {
+                var w = this.radialWidth/Object.keys(tableData).length;
+                var counter = 0;
+                for(var year in tableData) {
+                    var box = background.append("rect")
+                        .attr("width", w)
+                        .attr("height", this.radialWidth/10)
+                        .attr("x", this.labelSpace + this.margin + counter * w)
+                        .attr("y", this.labelSpace + this.margin + i * this.radialWidth/10)
+                        .style("stroke", "white")
+                        .style("stroke-width", 1);
+                    counter++;
+                    boxes.push(box);
+
+                }
+            }
+            else {
+                var title = background.append("rect")
+                    .attr("width", this.radialWidth)
+                    .attr("height", this.radialWidth/10)
+                    .attr("x", this.labelSpace + this.margin)
+                    .attr("y", this.labelSpace + this.margin + i * this.radialWidth/10)
+                    .attr("fill", this.color)
+                    .style("stroke", "white")
+                    .style("stroke-width", 1);
+                }
+                titles.push(title);
+
         }
 
         //append labels
-        label = background.append("text")
+        this.label = background.append("text")
             .attr("class", "label")
-            .text(labelSpanish)
+            .text(this.labelSpanish)
 
-        if (!parent.classed("root")) { 
-            label.style("font-size", "14px")
-                .style('fill', color)
-                .attr("x", textPosition(+position, +slice, +startAngle, width, labelSpace)[0])
-                .attr("y", textPosition(+position, +slice, +startAngle, width, labelSpace)[1]);
+        if (this.parent.classed("root") && !this.parent.classed("leveltwo")) { 
+            this.label.style("font-size", "27px")
+                .style('fill', this.color)
+                .attr('x', this.width/2)
+                .attr('y', this.width/2);
         }
 
         else {
-            label.style("font-size", "30px")
-                .style('fill', "white")
-                .attr('x', width/2)
-                .attr('y', width/2);
-        }   
-    }
-
-    //move the bubble from the center
-    this.move = function() {
-        
-        //choose line length randomly from the list of possible lengths
-        chosenLength = lengths[Math.floor(Math.random() * lengths.length)];
-        if (root.getClasses().indexOf("leveltwo") >= 0) {
-            if(position != 0) {
-                var previousChosenLength = root.nodeList[position - 1].getChosenLength();
-                if(chosenLength === previousChosenLength + 20 || chosenLength === previousChosenLength + 30 || chosenLength === previousChosenLength + 40) {
-                    chosenLength = previousChosenLength;
-                }
-            }
+            this.label.style("font-size", "14px")
+                .style('fill', this.color)
+                .attr("x", textPosition(+this.position, +this.slice, +this.startAngle, this.width, this.labelSpace)[0])
+                .attr("y", textPosition(+this.position, +this.slice, +this.startAngle, this.width, this.labelSpace)[1]);   
         }
-
-        if(root.getRoot() !== null) {
-            slice = 360 / (len+1);
-            startAngle = (((+root.getPosition() + 1) * +root.getSlice() + 180) % 360) + 10;
-        }
-
-        //calculate new x and y
-        var newX = (+x + Math.cos(((+position + 1) * toRadians(+slice)) + toRadians(startAngle)) * (chosenLength + r));
-        var newY = (+y + Math.sin(((+position + 1) * toRadians(+slice)) + toRadians(startAngle)) * (chosenLength + r));
-        x = newX;
-        y = newY;
-
-        label
-            .attr("x", textPosition(+position, +slice, +startAngle, width, labelSpace)[0]) 
-            .attr("y", textPosition(+position, +slice, +startAngle, width, labelSpace)[1])
-
-        var transition = svg.transition()
-            .duration(700)
-            .ease("linear")
-            .delay(0)
-            .attr("x", newX)
-            .attr("y", newY) 
-            .each("end", function(d) {
-
-                //assign hover events to non root bubbles
-                svg.on("mouseover", function(){
-                    me.addMouseEvents();
-                   
-               });  
-            });  
-    }
-
-    this.erase = function() {
-        d3.selectAll("[id='" + id +"']").remove();
     }
 
     this.addMouseEvents = function() {
         //assign hover events to non root bubbles
-        svg.on("mouseover", function(){
+        this.svg.on("mouseover", function(){
 
             //make small bubbles bigger on hover
-            if(r < 20) {
+            //if(r < 20) {
                 
-                var newX = width/2 + Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * (r);
-                var newY = width/2 + Math.sin((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * (r);
-                var newWidth = width + 4 * r;
+                //var newX = width/2 + Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * (r);
+                //var newY = width/2 + Math.sin((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * (r);
+                var newWidth = me.width + 200;
                 var newHeight = newWidth;
-                svg
+                me.svg
                     .transition().duration(300).ease("linear").delay(0)
                     .attr("width", newWidth)
                     .attr("height", newHeight)
-                    .attr("x", x - 2 * r)
-                    .attr("y", y - 2 * r)
-                    
-                rect
-                    .transition().duration(300).ease("linear").delay(0)
-                    .attr("width", 2 * radialWidth)
-                    .attr("height", 2 * radialWidth)
-                    .attr("x", newX)
-                    .attr("y", newY)
 
-                label
+                for(var i in boxes) {
+                    var w = newWidth/Object.keys(tableData).length;
+                    boxes[i].transition().duration(300).ease("linear").delay(0)
+                        .attr("width", w)
+                        .attr("height", newHeight/10)
+                        .attr("x", me.labelSpace + me.margin + (i % w) * w)
+                        .attr("y", me.labelSpace + me.margin + i * me.radialWidth/10)
+                }   
+
+                /*label
                     .transition().duration(300).ease("linear").delay(0)
                     .attr("x", newX + 2 * r) 
-                    .attr("y", textPosition(+position, +slice, +startAngle, newWidth, labelSpace)[1])   
-            }
+                    .attr("y", textPosition(+position, +slice, +startAngle, newWidth, labelSpace)[1])   */
+            //}
 
-            tooltip.attr("text", svg.attr("text"));
+            tooltip.attr("text", me.svg.attr("text"));
             return tooltip.style("visibility", "visible"); 
         });
 
         //on mouse out change small bubbles back to original size
-        svg.on("mouseout", function(){
+        /*svg.on("mouseout", function(){
             if(r < 20) {
                 svg
                     .transition().duration(300).ease("linear").delay(0)
@@ -1673,9 +1315,13 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
             return tooltip.style("visibility", "hidden");           
         }); 
         svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
-  
+  */
     }
 }
+
+Table.prototype = new SizeCircle();
+RadialProgress.prototype = new SizeCircle();
+
 
 
 

@@ -96,13 +96,13 @@
         text-anchor: middle;
     }
 
-    .cmn-toggle {
+    .cmn-toggle, .analytics-toggle {
         position: absolute;
         margin-left: -9999px;
         visibility: hidden;
     }
 
-    .cmn-toggle + label {
+    .cmn-toggle + label, .analytics-toggle + label {
         display: block;
         position: relative;
         cursor: pointer;
@@ -110,13 +110,16 @@
         user-select: none;
     }
 
-    input.cmn-toggle + label {
+    input.cmn-toggle + label, input.analytics-toggle + label {
       margin: 2px;
       width: 48px;
       height: 48px;
+      margin-top:10px;
     }
     input.cmn-toggle + label:before,
-    input.cmn-toggle + label:after {
+    input.cmn-toggle + label:after,
+    input.analytics-toggle + label:before,
+    input.analytics-toggle + label:after {
       display: block;
       position: absolute;
       top: 0;
@@ -139,10 +142,24 @@
       transform: rotateY(180deg);
       backface-visibility: hidden;
     }
-    input.cmn-toggle:checked + label:before {
+    input.analytics-toggle + label:before {
+      background: url(./images/noanalytics.png);
+      content: "";
+      transition: transform 0.5s;
+      backface-visibility: hidden;
+    }
+    input.analytics-toggle + label:after {
+      background: url(./images/analytics.png);;
+      content: "";
+      transition: transform 0.5s;
+      transform: rotateY(180deg);
+      backface-visibility: hidden;
+    }
+
+    input.cmn-toggle:checked + label:before, input.analytics-toggle:checked + label:before {
       transform: rotateY(180deg);
     }
-    input.cmn-toggle:checked + label:after {
+    input.cmn-toggle:checked + label:after, input.analytics-toggle:checked + label:after {
       transform: rotateY(0);
     }
     .switch {
@@ -160,12 +177,35 @@
         opacity: 1;
         filter: alpha(opacity=100);
         transition: all 0.3s ease 0s;
-        visibility:hidden;
     }
 
     #back-button:hover {
         opacity: 0.7;
         filter: alpha(opacity=70);
+    }
+
+    td, th {
+        padding: 1px 4px;
+    }
+
+    #analytics-button {
+        height: 48px;
+        width: 48px;
+        margin-top: 10px;
+        margin-left: 2px;
+        margin-right: 2px;
+        opacity: 1;
+        filter: alpha(opacity=100);
+        transition: all 0.3s ease 0s;
+    }
+
+    #analytics-button:hover {
+        opacity: 0.7;
+        filter: alpha(opacity=70);
+    }
+
+    td, th {
+        padding: 1px 4px;
     }
 
 
@@ -175,6 +215,8 @@
             <input id="cmn-toggle" class="cmn-toggle" type="checkbox">
             <label for="cmn-toggle"></label>
             <img id ="back-button" src="./images/back.png" onClick="goBack()"></img>
+            <input id="analytics-toggle" class="analytics-toggle" type="checkbox">
+            <label for="analytics-toggle"></label>
         </div>
         <div id="graph"></div>
         <script src="./d3.js" charset="utf-8"></script>
