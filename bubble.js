@@ -672,6 +672,10 @@ SizeCircle.prototype.erase = function(changeView) {
             } 
         }
     }
+    if(this.root !== null) {
+        var connection = this.root.connectionList[this.position]
+        connection.stopDrag();  
+    }
     d3.selectAll("[id='" + this.id +"']").remove();
 }
 
@@ -1137,15 +1141,17 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
     this.value = value;
     this.root = root;
     var me = this;
-
     var background;
+    
     var fixed = false;
     var newWidth = 57 * Object.keys(tableData).length + 180;
     var newHeight = 500 - (2 * (this.labelSpace - this.margin));
-    var button;
     var mouseIn = false;
     var dragging = false;
     var transitionInprogress = false;
+    var oldWidth;
+    var oldX;
+    var oldY;
 
     this.nodeList = [];
     this.connectionList = [];
