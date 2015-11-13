@@ -10,6 +10,7 @@ var vis = d3.select("#graph")
 var gender = false;
 var analytics = false;
 var tableCounter = 0;
+var openedTabels = [];
 var sizeStandard;
 var scaleFactor;
 var rootBubble;
@@ -37,6 +38,10 @@ document.addEventListener("DOMContentLoaded", function (event) {
         } else {
            changeView(false, analytics, [rootBubble], null);
         }
+        for(var i in openedTabels) {
+            openedTabels[i].parent.moveToFront();
+        }
+
     });
     var _selectorTable = document.querySelector('input[id=analytics-toggle]');
     if (_selectorTable.checked) {
@@ -113,13 +118,20 @@ var changeView = function(gen, stats, bubbleList, root) {
     }
     for(var i in bubbleList) {
         var bubble = bubbleList[i];
+        if(bubble.big && !analytics) {
+            bubble.erase(true, true);
+            var x = bubble.oldX;
+            var y = bubble.oldY;    
+        }
+        else {
+            bubble.erase(true, false);
+            var x = bubble.x;
+            var y = bubble.y;
+        }
         var classes = bubble.classes;
-        bubble.erase(true);
         var r = bubble.r;
         var margin = bubble.margin;
         var labelSpace = bubble.labelSpace;
-        var x = bubble.x;
-        var y = bubble.y;
         var id = bubble.id;
         var size = bubble.size;
         var fullName = bubble.fullName;
@@ -144,6 +156,7 @@ var changeView = function(gen, stats, bubbleList, root) {
         if(!gender) {
             if(analytics && analyticsExists) {
                 var newBubble = new Table(bubble.tableData, root, rootGroup, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len);
+                showOpenedTables()
             }
             else {
                 var newBubble = new SizeCircle(bubble.tableData, root, rootGroup, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len);
@@ -152,6 +165,7 @@ var changeView = function(gen, stats, bubbleList, root) {
         else {
             if(analytics && analyticsExists) {
                 var newBubble = new Table(bubble.tableData, root, rootGroup, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len);
+                showOpenedTables();
             }
             else {
                 var newBubble = new RadialProgress(bubble.tableData, root, rootGroup, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len);
@@ -171,7 +185,26 @@ var changeView = function(gen, stats, bubbleList, root) {
             newBubble.addMouseEvents();
             
         }
-        changeView(gen, stats, bubble.nodeList, newBubble);         
+        changeView(gen, stats, bubble.nodeList, newBubble);   
+
+        function showOpenedTables() {
+            newBubble.fixed = bubble.fixed;
+            newBubble.mouseIn = bubble.mouseIn;
+            newBubble.dragging = bubble.dragging;
+            newBubble.transitionInprogress = bubble.transitionInprogress;
+            newBubble.oldWidth = bubble.oldWidth;
+            newBubble.oldX = bubble.oldX;
+            newBubble.oldY = bubble.oldY;
+            newBubble.big = bubble.big;
+            newBubble.width = bubble.width;
+            newBubble.height = bubble.height;
+            if(newBubble.big) {
+                var index = openedTabels.indexOf(bubble);
+                if (index !== -1) {
+                    openedTabels[index] = newBubble;
+                }
+            }
+        }      
     }   
 }
 
@@ -306,7 +339,7 @@ var onRootClick = function(root) {
             if(root.nodeList[i].parent.classed("open")) {
                 onRootClick(root.nodeList[i]);
             }
-            root.nodeList[i].erase(false);
+            root.nodeList[i].erase(false, false);
         }
         root.nodeList = [];
         for(var i in root.connectionList) {
@@ -587,8 +620,7 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
     }
 
     this.addMouseEvents = function() {
-        this.svg.on("mouseover", function(){
-                    
+        this.svg.on("mouseover", function(){ 
             //make small bubbles bigger on hover
             if(me.r < 20) {
                 
@@ -660,7 +692,7 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
     }
 }
 
-SizeCircle.prototype.erase = function(changeView) {
+SizeCircle.prototype.erase = function(changeView, big) {
     if(!changeView) {
         for(var year in this.tableData) {
             if(this.tableData[year].length != 0) {
@@ -672,10 +704,13 @@ SizeCircle.prototype.erase = function(changeView) {
             } 
         }
     }
-    if(this.root !== null) {
-        var connection = this.root.connectionList[this.position]
-        connection.stopDrag();  
+    else {
+        if(this.root !== null && big) {
+            var connection = this.root.connectionList[this.position]
+            connection.stopDrag();  
+        }
     }
+
     d3.selectAll("[id='" + this.id +"']").remove();
 }
 
@@ -730,12 +765,12 @@ SizeCircle.prototype.handleClick = function() {
             }
 
             for(var i in this.root.nodeList) {
-                this.root.nodeList[i].erase(false);
+                this.root.nodeList[i].erase(false, false);
             }
             for(var i in this.root.connectionList) {
                 this.root.connectionList[i].erase();
             }
-            this.root.erase(false);
+            this.root.erase(false, false);
             rootBubble = this;
             this.root = null; 
 
@@ -1142,16 +1177,17 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
     this.root = root;
     var me = this;
     var background;
-    
-    var fixed = false;
-    var newWidth = 57 * Object.keys(tableData).length + 180;
-    var newHeight = 500 - (2 * (this.labelSpace - this.margin));
-    var mouseIn = false;
-    var dragging = false;
-    var transitionInprogress = false;
-    var oldWidth;
-    var oldX;
-    var oldY;
+   
+    this.newWidth = 57 * Object.keys(tableData).length + 180;
+    this.newHeight = 500 - (2 * (this.labelSpace - this.margin));
+    this.fixed = false;
+    this.mouseIn = false;
+    this.dragging = false;
+    this.transitionInprogress = false;
+    this.oldWidth;
+    this.oldX;
+    this.oldY;
+    this.big = false;
 
     this.nodeList = [];
     this.connectionList = [];
@@ -1162,19 +1198,19 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
     this.label;
 
     function dropHandler(d) {
-        dragging = false;
+        me.dragging = false;
     }
 
     function dragmove(d) {
-        var x = d3.event.x;
-        var y = d3.event.y;
-        d3.select(this).attr("x", x).attr("y", y);
+        me.x = d3.event.x;
+        me.y = d3.event.y;
+        d3.select(this).attr("x", me.x).attr("y", me.y);
         var connection = me.root.connectionList[me.position]
-        connection.followDrag(x + newWidth/2, y + newHeight/2);
+        connection.followDrag(me.x + me.newWidth/2, me.y + me.newHeight/2);
     }
 
     function dragstart(d) {
-        dragging = true;
+        me.dragging = true;
         d3.event.sourceEvent.preventDefault();
     }
 
@@ -1203,7 +1239,6 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
         background = this.svg.append("g").attr("class","component")
             .attr("cursor","pointer")
 
-        this.generateTable(this.width - 2 * (this.labelSpace + this.margin), this.height - 2 * (this.labelSpace + this.margin), false);
         
         //append labels
         this.label = background.append("text")
@@ -1225,7 +1260,11 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                 .attr("y", textPosition(+this.position, +this.slice, +this.startAngle, this.width, this.labelSpace)[1]);   
         }
 
-        
+        this.generateTable(this.width - 2 * (this.labelSpace + this.margin), this.height - 2 * (this.labelSpace + this.margin), this.big);
+        if(this.big) {
+            this.svg.call(drag); 
+        }
+
         //asign click, drag and hover events to tables
         this.svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
         this.svg.on("mouseover", function(){
@@ -1236,35 +1275,53 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
 
         this.svg.on("click", function(d){ 
             if (d3.event.defaultPrevented) return; // click suppressed
-            if(!transitionInprogress) {
-                if(fixed) { 
-                    fixed = false;
-                    mouseIn = false;
+            if(!me.transitionInprogress) {
+                if(me.fixed) {
+
+                    for(var i in openedTabels) {
+                        if(openedTabels[i].id == me.id) {
+                            var index = i;
+                            break;
+                        }
+                    }
+                    openedTabels.splice(index, 1); 
+                    me.fixed = false;
+                    me.mouseIn = false;
                     
                     me.svg.selectAll(".tableBox").remove();
 
                     me.svg
                         .transition().duration(500).ease("linear").delay(0)
-                        .attr("width", me.width)
-                        .attr("height", me.width)
-                        .attr("x", me.x)
-                        .attr("y", me.y) 
+                        .attr("width", me.oldWidth)
+                        .attr("height", me.oldWidth)
+                        .attr("x", me.oldX)
+                        .attr("y", me.oldY) 
                         .each("end", function() {
-                            transitionInprogress = false;
+                            me.transitionInprogress = false;
                         });
-                    me.generateTable(me.width - 2 * (me.labelSpace + me.margin), me.height - 2 * (me.labelSpace + me.margin), false);
+
+                    me.x = me.oldX;
+                    me.y = me.oldY;
+                    me.width = me.oldWidth;
+                    me.height = me.oldWidth;
+                    me.big = false; 
+
+                    me.generateTable(me.oldWidth - 2 * (me.labelSpace + me.margin), me.oldWidth - 2 * (me.labelSpace + me.margin), false);
 
                     me.label
                         .transition().duration(300).ease("linear").delay(0)
-                        .attr("x", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[0]) 
-                        .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[1]) 
+                        .attr("x", textPosition(+me.position, +me.slice, +me.startAngle, me.oldWidth, me.labelSpace)[0]) 
+                        .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, me.oldWidth, me.labelSpace)[1]) 
 
                     var connection = me.root.connectionList[me.position]
                     connection.stopDrag();
+
+                    
                 }
 
                 else {
-                    fixed = true;     
+                    me.fixed = true;
+                    openedTabels.push(me);     
                 }
             }
             
@@ -1274,46 +1331,56 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
 
     this.addMouseEvents = function() {
 
-        if(fixed) return;
         //assign hover events to non root bubbles
         this.svg.on("mouseover", function(){
-            console.log(transitionInprogress);
-            if(!mouseIn && !transitionInprogress) { 
-                transitionInprogress = true;  
-                mouseIn = true;
+            
+            if(!me.mouseIn && !me.transitionInprogress && !me.fixed) { 
+                me.transitionInprogress = true;  
+                me.mouseIn = true;
                 me.svg.selectAll(".tableBox").remove();
-                var halfX = newWidth/2;
-                var halfY = newHeight/2;
+                var halfX = me.newWidth/2;
+                var halfY = me.newHeight/2;
                 var tableMargin = me.labelSpace + me.margin;
+                me.oldWidth = me.width;
+                me.oldX = me.x;
+                me.oldY = me.y;
+                me.width = me.newWidth + 2 * tableMargin;
+                me.height = me.newHeight + 2 * tableMargin;
+                me.big = true;
                  
                 me.svg
                     .transition().duration(500).ease("linear").delay(0)
-                    .attr("width", newWidth + 2 * tableMargin)
-                    .attr("height", newHeight + 2 * tableMargin)
+                    .attr("width", me.newWidth + 2 * tableMargin)
+                    .attr("height", me.newHeight + 2 * tableMargin)
                     .each("end", function() {
-                        transitionInprogress = false;
+                        me.transitionInprogress = false;
                     });
 
                 if(me.x + halfX + 2 * tableMargin > 1200) {
-                    var newX =  1200 - newWidth - tableMargin;
+                    var newX =  1200 - me.newWidth - tableMargin;
                     me.svg.attr("x", newX)
+                    me.x = newX;
                 }
                 else if (me.x - halfX + tableMargin < 0) {
                     var newX = 0 - tableMargin;
                     me.svg.attr("x", newX)
+                    me.x = newX;
                 }
                 else {
                     me.svg.attr("x", me.x - halfX)
+                    me.x = me.x - halfX;
                 }
                 if (me.y - halfY + tableMargin < 0) {
                     var newY = 0 - tableMargin;
                     me.svg.attr("y", newY)
+                    me.y - newY;
                 }
                 else {
                     me.svg.attr("y", me.y - halfY)
+                    me.y = me.y -halfY;
                 }
 
-                me.generateTable(newWidth, newHeight, true);
+                me.generateTable(me.newWidth, me.newHeight, true);
                 me.parent.moveToFront();
                 me.svg.call(drag);    
             }
@@ -1324,23 +1391,29 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
 
         //on mouse out change small bubbles back to original size
         this.svg.on("mouseleave", function(){
-            if(fixed || dragging || transitionInprogress) return;
-            mouseIn = false;
+            if(me.fixed || me.dragging || me.transitionInprogress) return;
+            me.mouseIn = false;
             me.svg.selectAll(".tableBox").remove();
         
             me.svg
                 .transition().duration(300).ease("linear").delay(0)
-                .attr("width", me.width)
-                .attr("height", me.width)
-                .attr("x", me.x)
-                .attr("y", me.y)  
+                .attr("width", me.oldWidth)
+                .attr("height", me.oldWidth)
+                .attr("x", me.oldX)
+                .attr("y", me.oldY)  
           
-            me.generateTable(me.width - 2 * (me.labelSpace + me.margin), me.height - 2 * (me.labelSpace + me.margin), false);
+            me.generateTable(me.oldWidth - 2 * (me.labelSpace + me.margin), me.oldWidth - 2 * (me.labelSpace + me.margin), false);
 
             me.label
                 .transition().duration(300).ease("linear").delay(0)
-                .attr("x", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[0]) 
-                .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[1]) 
+                .attr("x", textPosition(+me.position, +me.slice, +me.startAngle, me.oldWidth, me.labelSpace)[0]) 
+                .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, me.oldWidth, me.labelSpace)[1])
+
+            me.x = me.oldX;
+            me.y = me.oldY;
+            me.width = me.oldWidth;
+            me.height = me.oldWidth;
+            me.big = false; 
 
             var connection = me.root.connectionList[me.position]
             connection.stopDrag();  
@@ -1488,7 +1561,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
 
             this.label
                 .transition().duration(300).ease("linear").delay(0)
-                .attr("x", textPosition(+me.position, +me.slice, +me.startAngle, newWidth + 2* (this.labelSpace + this.margin), me.labelSpace)[0]) 
+                .attr("x", textPosition(+me.position, +me.slice, +me.startAngle, me.newWidth + 2* (this.labelSpace + this.margin), me.labelSpace)[0]) 
                 .attr("y", me.labelSpace - 10) 
         }
 
