@@ -55,6 +55,7 @@ document.addEventListener("DOMContentLoaded", function (event) {
         } else {
            changeView(gender, false, [rootBubble], null);
         }
+        openedTabels = [];
     });
 });
 
@@ -151,6 +152,26 @@ var changeView = function(gen, stats, bubbleList, root) {
                 break;
             } 
         }
+
+        function showOpenedTables() {
+            newBubble.fixed = bubble.fixed;
+            newBubble.mouseIn = bubble.mouseIn;
+            newBubble.dragging = bubble.dragging;
+            newBubble.transitionInprogress = bubble.transitionInprogress;
+            newBubble.oldWidth = bubble.oldWidth;
+            newBubble.oldX = bubble.oldX;
+            newBubble.oldY = bubble.oldY;
+            newBubble.big = bubble.big;
+            newBubble.width = bubble.width;
+            newBubble.height = bubble.height;
+            if(newBubble.big) {
+                var index = openedTabels.indexOf(bubble);
+                if (index !== -1) {
+                    openedTabels[index] = newBubble;
+                }
+                console.log(openedTabels)
+            }
+        }   
    
         
         if(!gender) {
@@ -186,25 +207,7 @@ var changeView = function(gen, stats, bubbleList, root) {
             
         }
         changeView(gen, stats, bubble.nodeList, newBubble);   
-
-        function showOpenedTables() {
-            newBubble.fixed = bubble.fixed;
-            newBubble.mouseIn = bubble.mouseIn;
-            newBubble.dragging = bubble.dragging;
-            newBubble.transitionInprogress = bubble.transitionInprogress;
-            newBubble.oldWidth = bubble.oldWidth;
-            newBubble.oldX = bubble.oldX;
-            newBubble.oldY = bubble.oldY;
-            newBubble.big = bubble.big;
-            newBubble.width = bubble.width;
-            newBubble.height = bubble.height;
-            if(newBubble.big) {
-                var index = openedTabels.indexOf(bubble);
-                if (index !== -1) {
-                    openedTabels[index] = newBubble;
-                }
-            }
-        }      
+   
     }   
 }
 
