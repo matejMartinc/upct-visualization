@@ -1161,6 +1161,8 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
 
     this.label;
 
+    console.log(tableData);
+
     function dropHandler(d) {
         dragging = false;
     }
@@ -1360,20 +1362,19 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
         var leftTableMargin = this.labelSpace + this.margin + leftColumnWidth;
         var tableMargin = this.labelSpace + this.margin;
         var sortedYears = arrangeYears();
-        
+        var dataCount = 0;
         for(var i = 0; i < 10; i++) {
             if(i!=0 && i!=4 && i!=7) {
                 var counter = 0;
-                for(var y in sortedYears) {
-                        
+                for(var y in sortedYears) {    
                     if(i == 9 && counter == Object.keys(tableData).length - 1) {
                         var box = background.append("path")
                             .classed("tableBox", true)
-                            .attr("fill", this.color)
+                            .attr("fill", "white")
                             .attr("d", function(d) {
                                 return lowerRightRoundedRect(leftTableMargin + counter * boxWidth, tableMargin + i * boxHeight, boxWidth, boxHeight, tableWidth/25);
                             })
-                            .style("stroke", "white")
+                            .style("stroke", this.color)
                             .style("stroke-width", 1);
                     }
                     else {
@@ -1383,20 +1384,29 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                             .attr("height", boxHeight)
                             .attr("x", leftTableMargin + counter * boxWidth)
                             .attr("y", tableMargin + i * boxHeight)
-                            .attr("fill", this.color)
-                            .style("stroke", "white")
+                            .attr("fill", "white")
+                            .style("stroke", this.color)
                             .style("stroke-width", 1);
                     }
 
                     var boxText = background.append("text")
                         .attr("class", "tableBox")
-                        .style('fill', "white")
+                        .style('fill', this.color)
                         .style('font-size', boxHeight/2.1)
                         .style("text-anchor", "middle")
                         .attr('x', leftTableMargin + counter * boxWidth + boxWidth/2)
                         .attr('y', tableMargin + (i+1) * boxHeight - boxHeight/3)
-                    if(i == 1 || i == 5 || i == 8) boxText.text(sortedYears[y])
-                    else boxText.text(this.tableData[sortedYears[y]][counter])
+                    console.log(this.tableData[sortedYears[y]]);
+                    if(i == 1 || i == 5 || i == 8) { 
+                        boxText.text(sortedYears[y])
+                    }
+                    
+                    else { 
+                        boxText.text(this.tableData[sortedYears[y]][dataCount])
+                        if(y == sortedYears.length -1 ) {
+                            dataCount++;
+                        }
+                    }
                     counter++;
                 }
                 if(i!=9) {
@@ -1406,25 +1416,25 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                         .attr("height", boxHeight)
                         .attr("x", tableMargin)
                         .attr("y", tableMargin + i * boxHeight)
-                        .attr("fill", this.color)
-                        .style("stroke", "white")
+                        .attr("fill", "white")
+                        .style("stroke", this.color)
                         .style("stroke-width", 1);
                 }
                 else {
                      var box = background.append("path")
                         .classed("tableBox", true)
-                        .attr("fill", this.color)
+                        .attr("fill", "white")
                         .attr("d", function(d) {
                             return lowerLeftRoundedRect(tableMargin, tableMargin + i * boxHeight, leftColumnWidth, boxHeight, tableWidth/25);
                         })
-                        .style("stroke", "white")
+                        .style("stroke", this.color)
                         .style("stroke-width", 1);
                 }
 
                 if (i == 2 || i == 3 || i == 6 || i == 9) {
                     var boxText = background.append("text")
                         .attr("class", "tableBox")
-                        .style('fill', "white")
+                        .style('fill', this.color)
                         .style('font-size', boxHeight/2.1)
                         .style("text-anchor", "middle")
                         .attr('x', this.margin + this.labelSpace + leftColumnWidth/2)
@@ -1441,11 +1451,11 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                 if (i==0) {
                     var title = background.append("path")
                         .classed("tableBox", true)
-                        .attr("fill", this.color)
+                        .attr("fill", "white")
                         .attr("d", function(d) {
                             return upperRoundedRect(tableMargin, tableMargin, tableWidth, boxHeight, tableWidth/25);
                         })
-                        .style("stroke", "white")
+                        .style("stroke", this.color)
                         .style("stroke-width", 1);
                 }
 
@@ -1456,14 +1466,14 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                         .attr("height", boxHeight)
                         .attr("x", tableMargin)
                         .attr("y", tableMargin + i * boxHeight)
-                        .attr("fill", this.color)
-                        .style("stroke", "white")
+                        .attr("fill", "white")
+                        .style("stroke", this.color)
                         .style("stroke-width", 1);
                 }
 
                 var boxText = background.append("text")
                     .attr("class", "tableBox")
-                    .style('fill', "white")
+                    .style('fill', this.color)
                     .style('font-size', boxHeight/2.1)
                     .style("text-anchor", "middle")
                     .attr('x', tableMargin + tableWidth/2)
