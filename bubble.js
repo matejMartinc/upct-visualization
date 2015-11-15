@@ -1472,7 +1472,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
 
     this.generateTable = function(tableWidth, tableHeight, big) {
         var numberOfBoxes = Object.keys(tableData).length;
-        var leftColumnWidth = (tableWidth/(numberOfBoxes + 1)) * 2.2;
+        var leftColumnWidth = (tableWidth/(numberOfBoxes + 1)) * 2.4;
         var boxWidth = (tableWidth - leftColumnWidth)/numberOfBoxes;
         var boxHeight = tableHeight/10;
         var leftTableMargin = this.labelSpace + this.margin + leftColumnWidth;
