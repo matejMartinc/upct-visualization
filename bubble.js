@@ -169,7 +169,6 @@ var changeView = function(gen, stats, bubbleList, root) {
                 if (index !== -1) {
                     openedTabels[index] = newBubble;
                 }
-                console.log(openedTabels)
             }
         }   
    
@@ -1180,8 +1179,11 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
     this.root = root;
     var me = this;
     var background;
+    var stretch = false;
+    var oldEventX = 0;
+    var oldEventY = 0;
    
-    this.newWidth = 57 * Object.keys(tableData).length + 180;
+    this.newWidth = 60 * Object.keys(tableData).length + 270;
     this.newHeight = 500 - (2 * (this.labelSpace - this.margin));
     this.fixed = false;
     this.mouseIn = false;
@@ -1200,21 +1202,41 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
 
     this.label;
 
-    console.log(tableData);
-
     function dropHandler(d) {
         me.dragging = false;
+        background.attr("cursor","pointer");
     }
 
     function dragmove(d) {
-        me.x = d3.event.x;
-        me.y = d3.event.y;
-        d3.select(this).attr("x", me.x).attr("y", me.y);
+        if(stretch) {
+            if(oldEventX == 0) {
+                oldEventX = d3.event.x - 1;
+                oldEventY = d3.event.y - 1;
+            }
+            me.width = me.width + (d3.event.x - oldEventX);
+            me.height = me.height + (d3.event.y - oldEventY);
+
+            oldEventX = d3.event.x;
+            oldEventY = d3.event.y;
+            me.svg.selectAll(".tableBox").remove();
+            d3.select(this).attr("width", me.width).attr("height", me.height);
+
+            me.generateTable(me.width - 2 * (me.labelSpace + me.margin), me.height - 2 * (me.labelSpace + me.margin), me.big);
+        }
+        else {
+            me.x = d3.event.x;
+            me.y = d3.event.y;
+            d3.select(this).attr("x", me.x).attr("y", me.y);   
+        }
         var connection = me.root.connectionList[me.position]
         connection.followDrag(me.x + me.newWidth/2, me.y + me.newHeight/2);
     }
 
     function dragstart(d) {
+        if(stretch) {
+            oldEventX = 0;
+            oldEventY = 0;
+        }
         me.dragging = true;
         d3.event.sourceEvent.preventDefault();
     }
@@ -1291,7 +1313,6 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                     }
                     openedTabels.splice(index, 1); 
                     me.fixed = false;
-                    me.mouseIn = false;
                     
                     me.svg.selectAll(".tableBox").remove();
 
@@ -1303,6 +1324,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                         .attr("y", me.oldY) 
                         .each("end", function() {
                             me.transitionInprogress = false;
+                            me.mouseIn = false;     
                         });
 
                     me.x = me.oldX;
@@ -1425,14 +1447,32 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
             
             return tooltip.style("visibility", "hidden");           
         }); 
-        this.svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
+        this.svg.on("mousemove", function(){
+            var edgeX = me.width - me.labelSpace - me.margin;
+            var edgeY = me.height - me.labelSpace - me.margin;
+            var coordinates = [0, 0];
+            coordinates = d3.mouse(me.svg.node());
+            var mouseX = coordinates[0];
+            var mouseY = coordinates[1];
+            if(mouseX > edgeX - 40 && mouseX < edgeX && mouseY > edgeY - 40 && mouseY < edgeY) {
+                stretch = true;
+                background.attr("cursor","se-resize");
+            }
+            else {
+                
+                if(!me.dragging) {
+                    background.attr("cursor","pointer");
+                    stretch = false;
+                }
+            }
+            return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");
+        })
   
     }
 
     this.generateTable = function(tableWidth, tableHeight, big) {
         var numberOfBoxes = Object.keys(tableData).length;
-        var leftColumnWidth = (tableWidth/2.6);
-        if(big) leftColumnWidth = 180;
+        var leftColumnWidth = (tableWidth/(numberOfBoxes + 1)) * 2.2;
         var boxWidth = (tableWidth - leftColumnWidth)/numberOfBoxes;
         var boxHeight = tableHeight/10;
         var leftTableMargin = this.labelSpace + this.margin + leftColumnWidth;
@@ -1468,11 +1508,11 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                     var boxText = background.append("text")
                         .attr("class", "tableBox")
                         .style('fill', this.color)
-                        .style('font-size', boxHeight/2.1)
+                        .style('font-size', boxWidth/5)
                         .style("text-anchor", "middle")
                         .attr('x', leftTableMargin + counter * boxWidth + boxWidth/2)
                         .attr('y', tableMargin + (i+1) * boxHeight - boxHeight/3)
-                    console.log(this.tableData[sortedYears[y]]);
+                    
                     if(i == 1 || i == 5 || i == 8) { 
                         boxText.text(sortedYears[y])
                     }
@@ -1511,7 +1551,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                     var boxText = background.append("text")
                         .attr("class", "tableBox")
                         .style('fill', this.color)
-                        .style('font-size', boxHeight/2.1)
+                        .style('font-size', boxWidth/5)
                         .style("text-anchor", "middle")
                         .attr('x', this.margin + this.labelSpace + leftColumnWidth/2)
                         .attr('y', tableMargin + (i+1) * boxHeight - boxHeight/3)
@@ -1550,7 +1590,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                 var boxText = background.append("text")
                     .attr("class", "tableBox")
                     .style('fill', this.color)
-                    .style('font-size', boxHeight/2.1)
+                    .style('font-size', boxWidth/5)
                     .style("text-anchor", "middle")
                     .attr('x', tableMargin + tableWidth/2)
                     .attr('y', tableMargin + (i+1) * boxHeight - boxHeight/3)
@@ -1566,10 +1606,10 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
             var boxText = background.append("text")
                 .attr("class", "tableBox")
                 .style('fill', this.color)
-                .style('font-size', boxHeight/2.1)
+                .style('font-size', boxWidth/5)
                 .style("text-anchor", "middle")
                 .attr('x', tableMargin + tableWidth/2)
-                .attr('y', tableHeight + tableMargin + boxHeight/2.1)
+                .attr('y', tableHeight + tableMargin + boxWidth/4)
                 .text("*El guión “-” indica que no procede el cálculo del indicador para ese año.");
 
             this.label
