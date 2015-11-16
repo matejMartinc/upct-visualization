@@ -1,0 +1,176 @@
+body {
+    margin: 0px;
+}
+
+#graph {
+    width: 93%;
+    float: left;
+}
+
+.svg-container {
+    display: inline-block;
+    position: relative;
+    width: 100%;
+    padding-bottom: 100%;
+    vertical-align: top;
+    overflow: hidden;
+}
+.svg-content-responsive {
+    display: inline-block;
+    position: absolute;
+    top: 0px;
+    left: 0;
+}
+
+.tooltip{
+    display: inline;
+}
+
+.tooltip:after{
+    background: rgba(0,0,0,.8);
+    border-radius: 5px;
+    bottom: 26px;
+    color: #fff;
+    content: attr(text);
+    left: 10%;
+    padding: 5px 15px;
+    position: absolute;
+    z-index: 10;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.tooltip:before{
+    border: solid;
+    border-color: #333 transparent;
+    border-width: 6px 6px 0 6px;
+    bottom: 20px;
+    content: "";
+    left: 10px;
+    position: absolute;
+    z-index: 11;
+}
+
+.background {
+    fill: #FFFFFF;
+    fill-opacity: 0.01;
+}
+
+.component {
+    fill: #BA1919;
+}
+
+.component .label {
+    font-family: Myriad, "Helvetic Neue", Helvetica, Arial;
+    text-anchor: middle;
+    fill: #0000FF;
+}
+
+.arc {
+    stroke-weight:0.1;
+    fill: #4e8fff;
+}
+
+
+.arc2 {
+    stroke-weight:0.1;
+    fill: #3660b0;
+}
+
+
+.label {
+    font-family:  Myriad, "Helvetic Neue", Helvetica, Arial;
+    text-anchor: middle;
+}
+
+.cmn-toggle, .analytics-toggle {
+    position: absolute;
+    margin-left: -9999px;
+    visibility: hidden;
+}
+
+.cmn-toggle + label, .analytics-toggle + label {
+    display: block;
+    position: relative;
+    cursor: pointer;
+    outline: none;
+    user-select: none;
+}
+
+input.cmn-toggle + label, input.analytics-toggle + label {
+    margin: 2px;
+    width: 48px;
+    height: 48px;
+    margin-top:10px;
+    visibility:hidden;
+}
+
+input.cmn-toggle + label:before,
+input.cmn-toggle + label:after,
+input.analytics-toggle + label:before,
+input.analytics-toggle + label:after {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  color: #fff;
+  text-align: center;
+
+}
+input.cmn-toggle + label:before {
+  background: url(../images/maleproportion.png);
+  content: "";
+  transition: transform 0.5s;
+  backface-visibility: hidden;
+}
+input.cmn-toggle + label:after {
+  background: url(../images/size.png);;
+  content: "";
+  transition: transform 0.5s;
+  transform: rotateY(180deg);
+  backface-visibility: hidden;
+}
+input.analytics-toggle + label:before {
+  background: url(../images/analytics.png);
+  content: "";
+  transition: transform 0.5s;
+  backface-visibility: hidden;
+}
+input.analytics-toggle + label:after {
+  background: url(../images/noanalytics.png);;
+  content: "";
+  transition: transform 0.5s;
+  transform: rotateY(180deg);
+  backface-visibility: hidden;
+}
+
+input.cmn-toggle:checked + label:before, input.analytics-toggle:checked + label:before {
+  transform: rotateY(180deg);
+}
+input.cmn-toggle:checked + label:after, input.analytics-toggle:checked + label:after {
+  transform: rotateY(0);
+}
+.switch {
+    width: 7%;
+    float: right;
+    margin-top: 150px;
+}
+
+#back-button {
+    height: 48px;
+    width: 48px;
+    margin-top: 10px;
+    margin-left: 2px;
+    margin-right: 2px;
+    opacity: 1;
+    visibility: hidden;
+    filter: alpha(opacity=100);
+    transition: all 0.3s ease 0s;
+}
+
+#back-button:hover {
+    opacity: 0.7;
+    filter: alpha(opacity=70);
+}

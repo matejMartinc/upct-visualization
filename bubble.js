@@ -11,6 +11,7 @@ var gender = false;
 var analytics = false;
 var tableCounter = 0;
 var openedTabels = [];
+var level = 0;
 var sizeStandard;
 var scaleFactor;
 var rootBubble;
@@ -35,8 +36,10 @@ document.addEventListener("DOMContentLoaded", function (event) {
     _selector.addEventListener('change', function (event) {
         if (_selector.checked) {
            changeView(true, analytics, [rootBubble], null);
+           dropBanner(false);
         } else {
            changeView(false, analytics, [rootBubble], null);
+           dropBanner(false);
         }
         for(var i in openedTabels) {
             openedTabels[i].parent.moveToFront();
@@ -61,22 +64,30 @@ document.addEventListener("DOMContentLoaded", function (event) {
 
 var createMainPage = function() {
 
-    scaleFactor = 1;        
-    var rootGroup1 = vis.selectAll("g.root").data([0]).enter().append("g");
-    var rootGroup2 = vis.selectAll("g.root").data([0]).enter().append("g");
-    var rootGroup3 = vis.selectAll("g.root").data([0]).enter().append("g");
-    var rootGroup4 = vis.selectAll("g.root").data([0]).enter().append("g");
-    var rootMargin = 0;
-    var rootLabelSpace = 0;;
-    var studentPlanet = new SizeCircle({}, null, rootGroup1, 360, 100, "students", 6000, 0, "", "students", rootLabelSpace, rootMargin, "rgb(63, 127, 205)", "mainpage", 1, 360, 1);
-    var employePlanet = new SizeCircle({}, null, rootGroup2, 700, 100, "employes", 6000, 0, "", "employes", rootLabelSpace, rootMargin, "rgb(63, 127, 205)", "mainpage", 1, 360, 1);
-    var researchPlanet = new SizeCircle({}, null, rootGroup3, 420, 400, "research", 6000, 0, "", "research", rootLabelSpace, rootMargin, "rgb(63, 127, 205)", "mainpage", 1, 360, 1);
-    var moneyPlanet = new SizeCircle({}, null, rootGroup4, 780, 400, "money", 6000, 0, "", "money", rootLabelSpace, rootMargin, "rgb(63, 127, 205)", "mainpage", 1, 360, 1);
-    studentPlanet.draw();
-    employePlanet.draw();
-    researchPlanet.draw();
-    moneyPlanet.draw();
-
+    scaleFactor = 1;  
+    d3.csv("./data/students/nodes_info.csv", function(data1) {
+        d3.csv("./data/people/nodes_info.csv", function(data2) {
+            d3.csv("./data/research/nodes_info.csv", function(data3) {
+                d3.csv("./data/money/nodes_info.csv", function(data4) {
+                    var rootGroup1 = vis.selectAll("g.root").data([0]).enter().append("g");
+                    var rootGroup2 = vis.selectAll("g.root").data([0]).enter().append("g");
+                    var rootGroup3 = vis.selectAll("g.root").data([0]).enter().append("g");
+                    var rootGroup4 = vis.selectAll("g.root").data([0]).enter().append("g");
+                    var rootMargin = 3;
+                    var rootLabelSpace = 0;
+                    var rootR = Math.sqrt(6000);
+                    var studentPlanet = new SizeCircle({}, null, rootGroup1, 510 - rootR, 180 + rootR, "students", 6000, 0, "", "estudiantes", rootLabelSpace, rootMargin, data1[0].color , "mainpage", 1, 360, 1);
+                    var employePlanet = new SizeCircle({}, null, rootGroup2, 610, 180 + rootR, "people", 6000, 0, "", "empleados", rootLabelSpace, rootMargin, data2[0].color, "mainpage", 1, 360, 1);
+                    var researchPlanet = new SizeCircle({}, null, rootGroup3, 610, 440, "research", 6000, 0, "", "investigacion", rootLabelSpace, rootMargin, data3[0].color, "mainpage", 1, 360, 1);
+                    var moneyPlanet = new SizeCircle({}, null, rootGroup4, 510 - rootR, 440, "money", 6000, 0, "", "finanzas", rootLabelSpace, rootMargin, data4[0].color, "mainpage", 1, 360, 1);
+                    studentPlanet.draw();
+                    employePlanet.draw();
+                    researchPlanet.draw();
+                    moneyPlanet.draw();
+                }); 
+            }); 
+        }); 
+    });      
 } 
 
 //read data and create root bubble
@@ -84,12 +95,13 @@ var readData = function(directory) {
     d3.csv("./data/"+directory+"/nodes_info.csv", function(data1) {
         d3.csv("./data/"+directory+"/nodes_figures.csv", function(data2) {
             d3.csv("./data/"+directory+"/links.csv", function(allLinks) {
-           
+
                 //execute this after data has loaded
                 data = mergeData(data1, data2);
                 links = allLinks;
                 sizeStandard = data[0].size;
-                createMainBubble("root");
+                createMainBubble("root main");
+                dropBanner(false);
             });
         });
     });
@@ -122,14 +134,21 @@ var createMainBubble = function(classes) {
 }
 
 var goBack = function() {
-    document.getElementById("back-button").style.visibility="hidden";
     document.querySelector("input.analytics-toggle + label").style.visibility="hidden";
     vis.selectAll("g"). remove();
     vis.selectAll("line").remove();
-    createMainBubble("root open");
-    tableCounter = 0;
-
-    drawBubbles(rootBubble);
+    if(level == 1) {
+        level = 0;
+        createMainBubble("root open");
+        tableCounter = 0;
+        drawBubbles(rootBubble);
+    }
+    else {
+        document.querySelector("input.cmn-toggle + label").style.visibility="hidden";
+        document.getElementById("back-button").style.visibility="hidden";
+        createMainPage();
+        dropBanner(true);
+    }
 }
 
 //change from size to maleproportion view
@@ -314,10 +333,10 @@ var drawBubbles = function(root) {
     for (var i in bubbleLinks) {
         var line = vis.selectAll("line[id='" + d.id +"']").data([1]).enter().append("line");
         if(gender) {
-            var color = "rgb(63, 127, 205)";
+            var color = root.color;
         }
         else {
-            var color = "#000066";
+            var color = calculateColor(root.color);
         }
         var connection = new Connection(line, root, root.nodeList[i], color, slice, i, length);
         root.connectionList.push(connection);
@@ -344,6 +363,65 @@ var textPosition = function(i, slice, startAngle, width, labelSpace) {
         return [width/2, labelSpace - 10];
     }
 };
+
+var calculateColor = function(rgb) {
+    var newColor = "rgb(";
+    var rgbValues = rgb.match(/\d+/g);
+    newColor += Math.ceil(parseInt(rgbValues[0]) * 0.3) + ", ";
+    newColor += Math.ceil(parseInt(rgbValues[1]) * 0.6) + ", ";
+    newColor += Math.ceil(parseInt(rgbValues[2]) * 0.8) + ")";
+    
+    return newColor;
+}
+
+var dropBanner = function(remove) {
+    if(remove) {
+        d3.selectAll("rect.banner").remove();
+        d3.selectAll("rect.bottom").remove();
+        return;
+    }
+    var rect1 = vis.append("rect")
+        .attr("fill", data[0].color)
+        .classed("banner", true)
+        .attr("x", 0)
+        .attr("width", 25)
+    var rect2 = vis.append("rect")
+        .attr("fill", calculateColor(data[0].color))
+        .classed("banner", true)
+        .attr("x", 25)
+        .attr("width", 3)
+    var rect3 = vis.append("rect")
+        .attr("fill", calculateColor(data[0].color))
+        .classed("bottom", true)
+        .attr("x", 0)
+        .attr("width", 28)
+        .attr("height", 3)
+    d3.selectAll("rect.banner")
+        .attr("height", 0)
+        .attr("y", 0)
+    
+    d3.selectAll("rect.banner").transition().delay(0).duration(750)
+        .attr("height", 1000)
+
+    d3.selectAll("rect.bottom").transition().delay(0).duration(750)
+        .attr("y", 1000)
+
+    var text = vis.append("text")
+        .classed("banner", true)
+        .style('fill', "white")
+        .style('font-size', "20px")
+        .style("text-anchor", "start")
+        .attr('x', 25)
+        .attr('y', 600)
+        .attr("transform", "rotate(270 20, 600)");
+    if(!gender) {
+        text.text("SIZE OF THE FACULTIES")
+    }
+    else {
+        text.text("GENDER PROPORTION")
+    }
+
+}
 
 //called on click on the root bubble
 var onRootClick = function(root) {
@@ -509,7 +587,6 @@ function Connection(connection, source, target, stroke, slice, position, len) {
 
 //create circles which size depends on the size of the faculties
 function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len) {
-    
     this.tableData = tableData;
     this.parent = parent;
     this.x = x;
@@ -589,8 +666,20 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
             .attr("cx", this.width/2)
             .attr("cy", this.width/2)
             .attr("r", this.r)
-            .attr("fill", this.color)
-            .classed(this.classes, true);
+
+        if(this.parent.classed("main")) {
+            circle.attr("fill", "white")
+            circle.transition().duration(700).delay(0)
+                .attr("fill", this.color)
+                .attr("stroke", calculateColor(this.color))
+                .attr("stroke-width", "3px");
+        }
+
+        else {
+            circle.attr("fill", this.color)
+                .attr("stroke", calculateColor(this.color))
+                .attr("stroke-width", "3px");
+        }
 
         //append text for size
         text = group.append('text')
@@ -613,8 +702,8 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
 
         if (this.parent.classed("mainpage")) {
             text.text(this.labelSpanish)
-                .style("font-size", "35px")
-                .attr('y', this.width/2 + 35/3);
+                .style("font-size", "25px")
+                .attr('y', this.width/2 + 25/3);
         }
 
         //append labels
@@ -780,6 +869,7 @@ SizeCircle.prototype.handleClick = function() {
     if(this.parent.classed("node")) {
         this.parent.classed("node", false);    
         if(!this.root.parent.classed("levelone") && !this.root.parent.classed("leveltwo")) {
+            level = 1;
             this.parent.classed("root levelone open", true);
             scaleFactor = Math.sqrt(sizeStandard) / Math.sqrt(this.size);
             this.x = this.root.x;
@@ -819,35 +909,49 @@ SizeCircle.prototype.handleClick = function() {
         this.classes = this.parent.attr("class");
     }
     if(this.parent.classed("mainpage")) {
-        document.getElementById("back-button").style.visibility="visible";
-        this.x = 600 - this.r;
-        this.y = 400 - this.r;
-        this.svg.transition()
+        document.getElementById("back-button").style.visibility= "visible";
+        document.querySelector("input.cmn-toggle + label").style.visibility="visible";
+        this.x = 600 - this.r - this.margin;
+        this.y = 430 - this.r - this.margin;
+        var id = this.id;
+
+        vis.selectAll("circle").transition().duration(1000).delay(0)
+            .attr("fill", "white");
+
+        vis.selectAll("svg").transition()
             .duration(750)
             .attr("x",this.x)
             .attr("y",this.y) 
             .attr("width", this.width)
             .attr("height", this.height)
+
+        this.svg.transition().duration(750)
+            .attr("x",this.x)
+            .attr("y",this.y) 
+            .attr("width", this.width)
+            .attr("height", this.height)
             .each("end", function() {
+                console.log(id, "id")
                 vis.selectAll(".mainpage").remove();
-                if(this.id == "students") {
+                
+                if(id == "students") {
                     readData("students");
                 }
-                else if(this.id == "employes") {
-                    readData("employes");
+                else if(id == "people") {
+                    readData("people");
                 }
-                else if(this.id == "research") {
+                else if(id == "research") {
                     readData("research");
                 }
                 else {
                     readData("money");
                 }
-
             })
-        
-
     }
-    onRootClick(this);
+    else {
+        onRootClick(this);
+    }
+    
 }
 
 
@@ -1711,6 +1815,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
         }
     }
 }
+createMainPage();
 
 Table.prototype = new SizeCircle();
 RadialProgress.prototype = new SizeCircle();
@@ -1721,7 +1826,7 @@ d3.selection.prototype.moveToFront = function() {
     });
 };
 
-createMainPage();
+
 
 
 
