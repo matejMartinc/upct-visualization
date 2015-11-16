@@ -59,19 +59,41 @@ document.addEventListener("DOMContentLoaded", function (event) {
     });
 });
 
+var createMainPage = function() {
+
+    scaleFactor = 1;        
+    var rootGroup1 = vis.selectAll("g.root").data([0]).enter().append("g");
+    var rootGroup2 = vis.selectAll("g.root").data([0]).enter().append("g");
+    var rootGroup3 = vis.selectAll("g.root").data([0]).enter().append("g");
+    var rootGroup4 = vis.selectAll("g.root").data([0]).enter().append("g");
+    var rootMargin = 0;
+    var rootLabelSpace = 0;;
+    var studentPlanet = new SizeCircle({}, null, rootGroup1, 360, 100, "students", 6000, 0, "", "students", rootLabelSpace, rootMargin, "rgb(63, 127, 205)", "mainpage", 1, 360, 1);
+    var employePlanet = new SizeCircle({}, null, rootGroup2, 700, 100, "employes", 6000, 0, "", "employes", rootLabelSpace, rootMargin, "rgb(63, 127, 205)", "mainpage", 1, 360, 1);
+    var researchPlanet = new SizeCircle({}, null, rootGroup3, 420, 400, "research", 6000, 0, "", "research", rootLabelSpace, rootMargin, "rgb(63, 127, 205)", "mainpage", 1, 360, 1);
+    var moneyPlanet = new SizeCircle({}, null, rootGroup4, 780, 400, "money", 6000, 0, "", "money", rootLabelSpace, rootMargin, "rgb(63, 127, 205)", "mainpage", 1, 360, 1);
+    studentPlanet.draw();
+    employePlanet.draw();
+    researchPlanet.draw();
+    moneyPlanet.draw();
+
+} 
+
 //read data and create root bubble
-d3.csv("./data/students/nodes_info.csv", function(data1) {
-    d3.csv("./data/students/nodes_figures.csv", function(data2) {
-        d3.csv("./data/students/links.csv", function(allLinks) {
-       
-            //execute this after data has loaded
-            data = mergeData(data1, data2);
-            links = allLinks;
-            sizeStandard = data[0].size;
-            createMainBubble("root");
+var readData = function(directory) {
+    d3.csv("./data/"+directory+"/nodes_info.csv", function(data1) {
+        d3.csv("./data/"+directory+"/nodes_figures.csv", function(data2) {
+            d3.csv("./data/"+directory+"/links.csv", function(allLinks) {
+           
+                //execute this after data has loaded
+                data = mergeData(data1, data2);
+                links = allLinks;
+                sizeStandard = data[0].size;
+                createMainBubble("root");
+            });
         });
     });
-});
+}
 
 var createMainBubble = function(classes) {
     scaleFactor = 1;
@@ -576,7 +598,7 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
             .style('fill', 'white')
             .style("text-anchor", "middle")
             .text(this.size);
-
+      
         if (this.parent.classed("root") && !this.parent.classed("leveltwo")) { 
             text.style("font-size", "30px")
                 .attr('x', this.width/2)
@@ -587,6 +609,12 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
                 .classed("node", true)
                 .attr('x', this.width/2)
                 .attr('y', this.width/2 + this.fontSize/3);
+        }
+
+        if (this.parent.classed("mainpage")) {
+            text.text(this.labelSpanish)
+                .style("font-size", "35px")
+                .attr('y', this.width/2 + 35/3);
         }
 
         //append labels
@@ -752,7 +780,6 @@ SizeCircle.prototype.handleClick = function() {
     if(this.parent.classed("node")) {
         this.parent.classed("node", false);    
         if(!this.root.parent.classed("levelone") && !this.root.parent.classed("leveltwo")) {
-            document.getElementById("back-button").style.visibility="visible";
             this.parent.classed("root levelone open", true);
             scaleFactor = Math.sqrt(sizeStandard) / Math.sqrt(this.size);
             this.x = this.root.x;
@@ -790,6 +817,35 @@ SizeCircle.prototype.handleClick = function() {
             this.parent.classed("root leveltwo", true);
         }
         this.classes = this.parent.attr("class");
+    }
+    if(this.parent.classed("mainpage")) {
+        document.getElementById("back-button").style.visibility="visible";
+        this.x = 600 - this.r;
+        this.y = 400 - this.r;
+        this.svg.transition()
+            .duration(750)
+            .attr("x",this.x)
+            .attr("y",this.y) 
+            .attr("width", this.width)
+            .attr("height", this.height)
+            .each("end", function() {
+                vis.selectAll(".mainpage").remove();
+                if(this.id == "students") {
+                    readData("students");
+                }
+                else if(this.id == "employes") {
+                    readData("employes");
+                }
+                else if(this.id == "research") {
+                    readData("research");
+                }
+                else {
+                    readData("money");
+                }
+
+            })
+        
+
     }
     onRootClick(this);
 }
@@ -1664,6 +1720,8 @@ d3.selection.prototype.moveToFront = function() {
         this.parentNode.appendChild(this);
     });
 };
+
+createMainPage();
 
 
 
