@@ -333,7 +333,7 @@ var drawBubbles = function(root) {
     for (var i in bubbleLinks) {
         var line = vis.selectAll("line[id='" + d.id +"']").data([1]).enter().append("line");
         if(gender) {
-            var color = root.color;
+            var color = "rgb(63, 127, 205)";
         }
         else {
             var color = calculateColor(root.color);
@@ -412,13 +412,13 @@ var dropBanner = function(remove) {
         .style('font-size', "20px")
         .style("text-anchor", "start")
         .attr('x', 25)
-        .attr('y', 600)
-        .attr("transform", "rotate(270 20, 600)");
+        .attr('y', 550)
+        .attr("transform", "rotate(270 20, 550)");
     if(!gender) {
-        text.text("SIZE OF THE FACULTIES")
+        text.text("tamaño de las facultades")
     }
     else {
-        text.text("GENDER PROPORTION")
+        text.text("Proporción de género")
     }
 
 }
@@ -564,20 +564,23 @@ function Connection(connection, source, target, stroke, slice, position, len) {
             .each("end", function() {connection.remove()});
     }
 
+    //function for changing colors of connections, used in changeview
     this.changeColor = function() {
         if(gender) {
             connection.style("stroke", "rgb(63, 127, 205)");
         }
         else {
-            connection.style("stroke", "#000066");
+            connection.style("stroke", calculateColor(source.color));
         }
     }
 
+    //used when tables are dragged
     this.followDrag = function(x2,y2) {
         connection.attr("x2", x2)
                   .attr("y2", y2)
     }
 
+    //used to return connections back to former position once the dragging stop 
     this.stopDrag = function() {
         connection.transition().duration(500).ease("linear")
             .attr("x2", x2)
@@ -623,6 +626,7 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
     
     var me = this;
 
+    //on click make bubble bigger and position it in centre  
     this.zoomTransition = function() {
         
         circle
@@ -667,7 +671,7 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
             .attr("cy", this.width/2)
             .attr("r", this.r)
 
-        if(this.parent.classed("main")) {
+        if (this.parent.classed("main")) {
             circle.attr("fill", "white")
             circle.transition().duration(700).delay(0)
                 .attr("fill", this.color)
@@ -683,7 +687,7 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
 
         //append text for size
         text = group.append('text')
-            .classed("size", true)
+            .classed("label", true)
             .style('fill', 'white')
             .style("text-anchor", "middle")
             .text(this.size);
@@ -702,7 +706,7 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
 
         if (this.parent.classed("mainpage")) {
             text.text(this.labelSpanish)
-                .style("font-size", "25px")
+                .style("font-size", "22px")
                 .attr('y', this.width/2 + 25/3);
         }
 
@@ -931,7 +935,6 @@ SizeCircle.prototype.handleClick = function() {
             .attr("width", this.width)
             .attr("height", this.height)
             .each("end", function() {
-                console.log(id, "id")
                 vis.selectAll(".mainpage").remove();
                 
                 if(id == "students") {
@@ -1120,20 +1123,19 @@ function RadialProgress(tableData, root, parent, x, y, id, size, value, fullName
             .attr("d", arc)
 
         //append labels
-       this.label = background.append("text")
+        this.label = background.append("text")
             .attr("class", "label")
             .text(this.labelSpanish)
+            .style('fill', "rgb(63, 127, 205)")
 
         if (this.parent.classed("root") && !this.parent.classed("leveltwo")) { 
-            this.label.style("font-size", "27px")
-                .style('fill', this.color)
+            this.label.style("font-size", "27px") 
                 .attr('x', this.width/2)
                 .attr('y', this.width/2);
         }
 
         else {
             this.label.style("font-size", "14px")
-                .style('fill', this.color)
                 .attr("x", textPosition(+this.position, +this.slice, +this.startAngle, this.width, this.labelSpace)[0])
                 .attr("y", textPosition(+this.position, +this.slice, +this.startAngle, this.width, this.labelSpace)[1]);   
         }
@@ -1161,7 +1163,7 @@ function RadialProgress(tableData, root, parent, x, y, id, size, value, fullName
             .attr("width", this.radialWidth)
             .text(function(d) { return Math.round((this.value - minValue)/(maxValue - minValue)*100) + "%" })
             .style("font-size", this.fontSize+"px")
-            .style('fill', this.color);
+            .style('fill', "rgb(63, 127, 205)");
 
         if(this.parent.classed("root") && !this.parent.classed("leveltwo")) {
             this.fontSize = 30;
@@ -1448,6 +1450,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
         }
 
         this.generateTable(this.width - 2 * (this.labelSpace + this.margin), this.height - 2 * (this.labelSpace + this.margin), this.big);
+        
         if(this.big) {
             this.svg.call(drag); 
         }
@@ -1461,10 +1464,15 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
         this.svg.on("mouseout", function(){return tooltip.style("visibility", "hidden"); }) 
 
         this.svg.on("click", function(d){ 
-            if (d3.event.defaultPrevented) return; // click suppressed
+            
+            //click suppressed
+            if (d3.event.defaultPrevented) {
+                return;
+            } 
             if(!me.transitionInprogress) {
                 if(me.fixed) {
 
+                    //if table is opened and fixed, close it and delete from list of opened tables
                     for(var i in openedTabels) {
                         if(openedTabels[i].id == me.id) {
                             var index = i;
@@ -1474,8 +1482,10 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                     openedTabels.splice(index, 1); 
                     me.fixed = false;
                     
+                    //remove old table
                     me.svg.selectAll(".tableBox").remove();
 
+                    //move svg back to original position and size
                     me.svg
                         .transition().duration(500).ease("linear").delay(0)
                         .attr("width", me.oldWidth)
@@ -1493,19 +1503,21 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                     me.height = me.oldWidth;
                     me.big = false; 
 
+                    //generate small table
                     me.generateTable(me.oldWidth - 2 * (me.labelSpace + me.margin), me.oldWidth - 2 * (me.labelSpace + me.margin), false);
 
+                    //move labels to original position
                     me.label
                         .transition().duration(300).ease("linear").delay(0)
                         .attr("x", textPosition(+me.position, +me.slice, +me.startAngle, me.oldWidth, me.labelSpace)[0]) 
                         .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, me.oldWidth, me.labelSpace)[1]) 
 
+                    //move lines to original position
                     var connection = me.root.connectionList[me.position]
-                    connection.stopDrag();
-
-                    
+                    connection.stopDrag();                   
                 }
 
+                //if table is not fixed, fix it and push it in a list
                 else {
                     me.fixed = true;
                     openedTabels.push(me);     
@@ -1518,12 +1530,15 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
 
     this.addMouseEvents = function() {
 
-        //assign hover events to non root bubbles
+        //assign hover events to tables
         this.svg.on("mouseover", function(){
             
+            //mouse was not inside the table, transition was not in progress and table is not fixed
             if(!me.mouseIn && !me.transitionInprogress && !me.fixed) { 
                 me.transitionInprogress = true;  
                 me.mouseIn = true;
+                
+                //remove small table and make a big one
                 me.svg.selectAll(".tableBox").remove();
                 var halfX = me.newWidth/2;
                 var halfY = me.newHeight/2;
@@ -1534,7 +1549,8 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                 me.width = me.newWidth + 2 * tableMargin;
                 me.height = me.newHeight + 2 * tableMargin;
                 me.big = true;
-                 
+
+                //make svg bigger
                 me.svg
                     .transition().duration(500).ease("linear").delay(0)
                     .attr("width", me.newWidth + 2 * tableMargin)
@@ -1543,6 +1559,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                         me.transitionInprogress = false;
                     });
 
+                //check for page borders
                 if(me.x + halfX + 2 * tableMargin > 1200) {
                     var newX =  1200 - me.newWidth - tableMargin;
                     me.svg.attr("x", newX)
@@ -1567,6 +1584,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                     me.y = me.y -halfY;
                 }
 
+                //generate big tabla and move it to the front 
                 me.generateTable(me.newWidth, me.newHeight, true);
                 me.parent.moveToFront();
                 me.svg.call(drag);    
@@ -1576,12 +1594,17 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
             return tooltip.style("visibility", "visible"); 
         });
 
-        //on mouse out change small bubbles back to original size
+        
         this.svg.on("mouseleave", function(){
-            if(me.fixed || me.dragging || me.transitionInprogress) return;
+            console.log(me.transitionInprogress);
+            //only do something if table is not fixed, there is no transition going on and no dragging
+            if(!me.big || me.fixed || me.dragging || me.transitionInprogress) {
+                return;
+            }
             me.mouseIn = false;
             me.svg.selectAll(".tableBox").remove();
         
+            //make svg small again
             me.svg
                 .transition().duration(300).ease("linear").delay(0)
                 .attr("width", me.oldWidth)
@@ -1589,6 +1612,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                 .attr("x", me.oldX)
                 .attr("y", me.oldY)  
           
+            //generate small table
             me.generateTable(me.oldWidth - 2 * (me.labelSpace + me.margin), me.oldWidth - 2 * (me.labelSpace + me.margin), false);
 
             me.label
@@ -1607,6 +1631,8 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
             
             return tooltip.style("visibility", "hidden");           
         }); 
+
+        //resize table on click on lover right edge
         this.svg.on("mousemove", function(){
             var edgeX = me.width - me.labelSpace - me.margin;
             var edgeY = me.height - me.labelSpace - me.margin;
@@ -1614,15 +1640,35 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
             coordinates = d3.mouse(me.svg.node());
             var mouseX = coordinates[0];
             var mouseY = coordinates[1];
-            if(mouseX > edgeX - 40 && mouseX < edgeX && mouseY > edgeY - 40 && mouseY < edgeY) {
-                stretch = true;
-                background.attr("cursor","se-resize");
+            var is_firefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
+
+            //firefox compatibility
+            if(is_firefox) {
+                if(mouseX >me.x + edgeX - 40 && mouseX < me.x + edgeX && mouseY > me.y + edgeY - 40 && mouseY < me.y + edgeY) {
+                    stretch = true;
+                    background.attr("cursor","se-resize");
+                }
+                else {
+                    
+                    if(!me.dragging) {
+                        background.attr("cursor","pointer");
+                        stretch = false;
+                    }
+                }
             }
+
+            //all other browsers
             else {
-                
-                if(!me.dragging) {
-                    background.attr("cursor","pointer");
-                    stretch = false;
+                if(mouseX > edgeX - 40 && mouseX < edgeX && mouseY > edgeY - 40 && mouseY < edgeY) {
+                    stretch = true;
+                    background.attr("cursor","se-resize");
+                }
+                else {
+                    
+                    if(!me.dragging) {
+                        background.attr("cursor","pointer");
+                        stretch = false;
+                    }
                 }
             }
             return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");
@@ -1666,7 +1712,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                     }
 
                     var boxText = background.append("text")
-                        .attr("class", "tableBox")
+                        .attr("class", "tableBox label")
                         .style('fill', this.color)
                         .style('font-size', boxWidth/5)
                         .style("text-anchor", "middle")
@@ -1709,7 +1755,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
 
                 if (i == 2 || i == 3 || i == 6 || i == 9) {
                     var boxText = background.append("text")
-                        .attr("class", "tableBox")
+                        .attr("class", "tableBox label")
                         .style('fill', this.color)
                         .style('font-size', boxWidth/5)
                         .style("text-anchor", "middle")
@@ -1748,7 +1794,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                 }
 
                 var boxText = background.append("text")
-                    .attr("class", "tableBox")
+                    .attr("class", "tableBox label")
                     .style('fill', this.color)
                     .style('font-size', boxWidth/5)
                     .style("text-anchor", "middle")
@@ -1764,7 +1810,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
 
         if(big) {
             var boxText = background.append("text")
-                .attr("class", "tableBox")
+                .attr("class", "tableBox label")
                 .style('fill', this.color)
                 .style('font-size', boxWidth/5)
                 .style("text-anchor", "middle")
