@@ -398,24 +398,24 @@ var createBanner = function(remove) {
         .classed("banner", true)
             .attr("fill", data[0].color)
             .attr("d", function(d) {
-                return "M 0 290 L 0 315 L 0 530 L 0 555 L 0 250"      
+                return "M 0 288 L 0 313 L 0 532 L 0 557 L 0 288"      
             })
             .attr("stroke", calculateColor(data[0].color))
             .attr("stroke-width", 1);
 
     banner.transition().delay(0).duration(750)
         .attr("d", function(d) {
-            return "M 0 290 L 25 315 L 25 530 L 0 555 L 0 250"
+            return "M 0 288 L 25 313 L 25 532 L 0 557 L 0 288"
         });
 
     var text = vis.append("text")
-        .classed("banner", true)
+        .classed("banner label", true)
         .style('fill', "white")
         .style('font-size', "20px")
         .style("text-anchor", "middle")
         .attr('x', 0)
-        .attr('y', 425)
-        .attr("transform", "rotate(270 0, 425)");
+        .attr('y', 422)
+        .attr("transform", "rotate(270 0, 422)");
     if(!gender) {
         text.text("tamaño de las facultades")
     }
@@ -425,7 +425,7 @@ var createBanner = function(remove) {
 
     text.transition().delay(0).duration(750)
         .attr('x', 20)
-        .attr("transform", "rotate(270 20, 425)");
+        .attr("transform", "rotate(270 20, 422)");
 }
 
 //called on click on the root bubble
