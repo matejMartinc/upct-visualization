@@ -70,10 +70,11 @@ if (sum(!alumnos$PLAN_ID %in% labels$PLAN_ID) >0){
 }
 alumnos <- alumnos %>%
   left_join(labels)
-nodes_planes <- with(alumnos,
-       data.frame(id = nivel4,
-                  labelSpanish = labelSpanish,
-                  fullNameSpanish = PLAN_DESC)) %>%
+nodes_planes <- with(alumnos %>%
+                    filter(Tipo != "Primer y segundo ciclo"),
+                    data.frame(id = nivel4,
+                               labelSpanish = labelSpanish,
+                               fullNameSpanish = PLAN_DESC)) %>%
   mutate(color = "rgb(63, 127, 205)",
          labelEnglish = labelSpanish,
          fullNameEnglish = fullNameSpanish) %>%
@@ -118,6 +119,7 @@ links_23 <- alumnos %>%
   distinct
 names(links_23) <- c("source", "target")
 links_34 <- alumnos %>%
+  filter(Tipo != "Primer y segundo ciclo") %>%
   select(nivel3, nivel4) %>%
   distinct
 names(links_34) <- c("source", "target")
