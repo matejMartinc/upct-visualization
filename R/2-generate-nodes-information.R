@@ -4,6 +4,8 @@ datapath <- c("./data/", "~/OPADA/Transparencia/indicadores-para-web/saiku-expor
               "~/OPADA/Transparencia/indicadores-para-web/data/",
               "~/OPADA/data/SIIU/ficheros-codigos/")
 load(datafile("alumnos.Rdata"))
+## el directorio donde se guardarán los ficheros con información sobre nodos etc...
+datadir <- "../data/students/"
 ## -----------------------------------------------------------------------------
 ##
 ## We add columns that indicate the level of hierarchy and will determine the
@@ -15,6 +17,10 @@ alumnos <- alumnos %>%
          nivel2 = paste(nivel1, CENTRO_ACRONIMO, sep = "/"),
          nivel3 = paste(nivel2, SUBTIPO_ESTUDIO_ID, sep = "/"),
          nivel4 = paste(nivel3, PLAN_ID, sep = "/"))
+incoming <- incoming %>%
+  mutate(nivel1 = Universidad,
+         nivel2 = paste(nivel1, "INCOMING", sep = "/"))
+
 ## -----------------------------------------------------------------------------
 ##
 ## We create the file with nodes information (labels, color, etc..)
@@ -24,14 +30,14 @@ alumnos <- alumnos %>%
 nodes_info <- data.frame(id = "064",
                          labelSpanish = "UPCT",
                          labelEnglish = "UPCT",
-                         color = "#009933",
+                         color = "rgb(63, 127, 205)",
                          fullNameSpanish =
                            "Universidad Politécnica de Cartagena",
                          fullNameEnglish = "Technical University of Cartagena")
 nodes_centros <- with(alumnos, data.frame(id = nivel2,
                                           labelSpanish = CENTRO_ACRONIMO,
                                           labelEnglish = CENTRO_ACRONIMO,
-                                          color = "#009933",
+                                          color = "rgb(63, 127, 205)",
                                           fullNameSpanish = CENTRO_DESC,
                                           fullNameEnglish = CENTRO_DESC) %>%
                                  distinct)
@@ -48,7 +54,7 @@ nodes_tipo <-
                                                    c("Bachelor",
                                                      "Pre-EHEA programmes",
                                                      "Master")))) %>%
-  mutate(color = "#009933",
+  mutate(color = "rgb(63, 127, 205)",
          fullNameSpanish = labelSpanish,
          fullNameEnglish = labelEnglish) %>%
                                  distinct
@@ -68,16 +74,31 @@ nodes_planes <- with(alumnos,
        data.frame(id = nivel4,
                   labelSpanish = labelSpanish,
                   fullNameSpanish = PLAN_DESC)) %>%
-  mutate(color = "#009933",
+  mutate(color = "rgb(63, 127, 205)",
          labelEnglish = labelSpanish,
          fullNameEnglish = fullNameSpanish) %>%
-                                 distinct
+  distinct
+## ---------------------------------------------------------------------------
+##
+## Añadimos aquí alumnos internacionales, títulos propios y doctorados
+##
+## ----------------------------------------------------------------------------
+nodes_centros <- rbind(nodes_centros,
+                       with(incoming, data.frame(id = nivel2,
+                                                 labelSpanish = "Internacionales",
+                                                 labelEnglish = "Incoming Students",
+                                                 color = "rgb(63, 127, 205)",
+                                                 fullNameSpanish =
+                                                   "Estudiantes de movilidad internacional dentro de convenios",
+                                                 fullNameEnglish =
+                                                   "Incoming international students")
+                         %>% distinct))  
 nodes_info <-
   rbind(nodes_info,
         nodes_centros,
         nodes_tipo,
         nodes_planes)
-write.csv(nodes_info, "../data/nodes_info.csv",
+write.csv(nodes_info, paste0(datadir, "nodes_info.csv"),
           row.names = FALSE)
 ## -----------------------------------------------------------------------------
 ##
@@ -87,6 +108,10 @@ write.csv(nodes_info, "../data/nodes_info.csv",
 links_12<- alumnos %>%
   select(nivel1, nivel2) %>%
   distinct
+links_12 <- rbind(links_12,
+                  incoming %>%
+                    select(nivel1, nivel2) %>%
+                    distinct)
 names(links_12) <- c("source", "target")
 links_23 <- alumnos %>%
   select(nivel2, nivel3) %>%
@@ -97,7 +122,7 @@ links_34 <- alumnos %>%
   distinct
 names(links_34) <- c("source", "target")
 links <- rbind(links_12, links_23, links_34)
-write.csv(links, "../data/links2.csv",
+write.csv(links, paste0(datadir,"links.csv"),
           row.names = FALSE)
 ## -----------------------------------------------------------------------------
 ##
@@ -119,9 +144,15 @@ indicators <- function(alumnos, groupvariable){
                   - node_id) %>%
     mutate(indicator = as.character(indicator))
 }
+## Para los niveles 1 y 2, consideramos alumnos y incoming (y títulos propios y
+## doctorandos)
+
+datosnivel12 <- rbind(alumnos %>% select(nivel1, nivel2, Sexo),
+                     incoming %>% select(nivel1, nivel2, Sexo))
+## generamos los números de de los nodos.
 nodes_figures <-
-  rbind(indicators(alumnos, "nivel1"),
-        indicators(alumnos, "nivel2"),
+  rbind(indicators(datosnivel12, "nivel1"),
+        indicators(datosnivel12, "nivel2"),
         indicators(alumnos, "nivel3"),
         indicators(alumnos, "nivel4")) %>%
   arrange(node_id, desc(indicator))
@@ -130,5 +161,5 @@ nodes_figures$year <- "2013-14"
 load("results/indicators_tables.Rdata")
 nodes_figures <- rbind(nodes_figures,
                        indicators_tables)
-write.csv(nodes_figures, file = "../data/nodes_figures.csv",
+write.csv(nodes_figures, file = paste0(datadir, "nodes_figures.csv"),
           row.names = FALSE)

@@ -44,7 +44,7 @@ planes <- read.table(file = datafile("planes_centros.txt"),
 ##
 ## -----------------------------------------------------------------------------
 ##                Datos alumnos
-##        Cargamos los datos de los ficheros Avance SIIU
+##        Cargamos los datos de los ficheros Avance SIIU curso 2014-15
 ## -----------------------------------------------------------------------------
 alumnos.grados <-
   rbind(
@@ -78,5 +78,17 @@ alumnos <- alumnos %>%
                      CENTRO_ACRONIMO, CENTRO_DESC),
             by = c("Titulacion" = "TITULO_MINISTERIO_ID"))
 ## -----------------------------------------------------------------------------
+##
+## We now get international students information
+##
+## -----------------------------------------------------------------------------
+##
+## OJO: uso el fichero de movilidades entrantes del curso anterior 2013-14!
+incoming <- xmlToDataFrame(datafile("U06413AC0401_02.XML")) %>%
+  mutate(Sexo = plyr::mapvalues(Sexo, from = c("H", "M"),
+                                to = c("Hombre", "Mujer")))
+## nos quedamos sólo con el Sexo..
+incoming <- incoming[c("Universidad", "Sexo")]
+
 ## We save the  object for further use
-save(alumnos, file = "data/alumnos.Rdata")
+save(alumnos, incoming, file = "data/alumnos.Rdata")
