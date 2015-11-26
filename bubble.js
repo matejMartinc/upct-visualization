@@ -25,7 +25,6 @@ var tooltip = d3.select("body")
     .style("z-index", "10")
     .style("visibility", "hidden");
 
-
 //this listens for gender and table button clicks and triggers changeview
 document.addEventListener("DOMContentLoaded", function (event) {
     var _selector = document.querySelector('input[id=cmn-toggle]');
@@ -132,6 +131,10 @@ var createMainBubble = function(classes) {
         rootBubble = new RadialProgress(data[0].year, null, rootGroup, rootX, rootY, rootId, rootSize, maleProportion, rootFullName, rootLabelSpanish, rootLabelSpace, rootMargin, rootColor, classes, 1, 360, 1);
         rootBubble.draw();
     }
+
+    rootBubble.parent.classed("open", true);
+    rootBubble.classes = rootBubble.parent.attr("class");
+    drawBubbles(rootBubble);
 }
 
 //define behaviour and visibility of back button
@@ -145,7 +148,6 @@ var goBack = function() {
         level = 0;
         createMainBubble("root open");
         tableCounter = 0;
-        drawBubbles(rootBubble);
     }
     else {
         document.querySelector("input.cmn-toggle + label").style.visibility="hidden";
@@ -893,6 +895,7 @@ SizeCircle.prototype.handleClick = function() {
             this.root.erase(false);
             rootBubble = this;
             this.root = null; 
+            var me = this;
 
             this.svg.transition()
                .duration(750)
@@ -900,9 +903,13 @@ SizeCircle.prototype.handleClick = function() {
                .attr("y",this.y) 
                .attr("width", this.width)
                .attr("height", this.height)
+               .each("end", function() {
+                    me.parent.classed("open", true);
+                    me.classes = me.parent.attr("class");
+                    drawBubbles(me);
+                });
             
-            this.zoomTransition();
-           
+            this.zoomTransition();         
         }
         else {
             this.parent.classed("root leveltwo", true);
@@ -1642,8 +1649,6 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                 var mouseX = coordinates[0];
                 var mouseY = coordinates[1];
                 var is_firefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
-                console.log(mouseX, edgeX);
-                console.log(mouseY, edgeY);
 
                 //firefox compatibility
                 if(is_firefox) {
