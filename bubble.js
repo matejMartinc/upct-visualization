@@ -10,7 +10,6 @@ var vis = d3.select("#graph")
 var gender = false;
 var analytics = false;
 var tableCounter = 0;
-var openedTabels = [];
 var level = 0;
 var sizeStandard;
 var scaleFactor;
@@ -24,7 +23,7 @@ var tooltip = d3.select("body")
     .classed("tooltip", true)
     .style("position", "absolute")
     .style("z-index", "10")
-    .style("visibility", "hidden")
+    .style("visibility", "hidden");
 
 
 //this listens for gender and table button clicks and triggers changeview
@@ -33,18 +32,17 @@ document.addEventListener("DOMContentLoaded", function (event) {
     if (_selector.checked) {
         gender = true;
     } else {
-        gender = false;
+        gender = false;   
     }
     _selector.addEventListener('change', function (event) {
+        document.querySelector('input[id=analytics-toggle]').checked = false;
+        analytics = false;
         if (_selector.checked) {
            changeView(true, analytics, [rootBubble], null);
            createBanner(false);
         } else {
            changeView(false, analytics, [rootBubble], null);
            createBanner(false);
-        }
-        for(var i in openedTabels) {
-            openedTabels[i].parent.moveToFront();
         }
 
     });
@@ -60,7 +58,6 @@ document.addEventListener("DOMContentLoaded", function (event) {
         } else {
            changeView(gender, false, [rootBubble], null);
         }
-        openedTabels = [];
     });
 });
 
@@ -79,10 +76,10 @@ var createMainPage = function() {
                     var rootMargin = 3;
                     var rootLabelSpace = 0;
                     var rootR = Math.sqrt(6000);
-                    var studentPlanet = new SizeCircle({}, null, rootGroup1, 510 - rootR, 180 + rootR, "students", 6000, 0, "", "estudiantes", rootLabelSpace, rootMargin, data1[0].color , "mainpage", 1, 360, 1);
-                    var employePlanet = new SizeCircle({}, null, rootGroup2, 610, 180 + rootR, "people", 6000, 0, "", "empleados", rootLabelSpace, rootMargin, data2[0].color, "mainpage", 1, 360, 1);
-                    var researchPlanet = new SizeCircle({}, null, rootGroup3, 610, 440, "research", 6000, 0, "", "investigacion", rootLabelSpace, rootMargin, data3[0].color, "mainpage", 1, 360, 1);
-                    var moneyPlanet = new SizeCircle({}, null, rootGroup4, 510 - rootR, 440, "money", 6000, 0, "", "finanzas", rootLabelSpace, rootMargin, data4[0].color, "mainpage", 1, 360, 1);
+                    var studentPlanet = new SizeCircle({}, null, rootGroup1, 510 - rootR, 180 + rootR, "students", 6000, 0, "", "student", rootLabelSpace, rootMargin, data1[0].color , "mainpage", 1, 360, 1);
+                    var employePlanet = new SizeCircle({}, null, rootGroup2, 610, 180 + rootR, "people", 6000, 0, "", "people", rootLabelSpace, rootMargin, data2[0].color, "mainpage", 1, 360, 1);
+                    var researchPlanet = new SizeCircle({}, null, rootGroup3, 610, 440, "research", 6000, 0, "", "research", rootLabelSpace, rootMargin, data3[0].color, "mainpage", 1, 360, 1);
+                    var moneyPlanet = new SizeCircle({}, null, rootGroup4, 510 - rootR, 440, "money", 6000, 0, "", "money", rootLabelSpace, rootMargin, data4[0].color, "mainpage", 1, 360, 1);
                     studentPlanet.draw();
                     employePlanet.draw();
                     researchPlanet.draw();
@@ -140,6 +137,8 @@ var createMainBubble = function(classes) {
 //define behaviour and visibility of back button
 var goBack = function() {
     document.querySelector("input.analytics-toggle + label").style.visibility="hidden";
+    document.querySelector('input[id=analytics-toggle]').checked = false;
+    analytics = false;
     vis.selectAll("g"). remove();
     vis.selectAll("line").remove();
     if(level == 1) {
@@ -169,16 +168,9 @@ var changeView = function(gen, stats, bubbleList, root) {
     //get data from old bubble, delete it and use the data to create new bubble of different sort
     for(var i in bubbleList) {
         var bubble = bubbleList[i];
-        if(bubble.big && !analytics) {
-            bubble.erase(true, true);
-            var x = bubble.oldX;
-            var y = bubble.oldY;    
-        }
-        else {
-            bubble.erase(true, false);
-            var x = bubble.x;
-            var y = bubble.y;
-        }
+        bubble.erase(true);
+        var x = bubble.x;
+        var y = bubble.y;
         var classes = bubble.classes;
         var r = bubble.r;
         var margin = bubble.margin;
@@ -202,31 +194,10 @@ var changeView = function(gen, stats, bubbleList, root) {
                 break;
             } 
         }
-
-        //makes sure opened tables stay on the same spot after view change
-        function showOpenedTables() {
-            newBubble.fixed = bubble.fixed;
-            newBubble.mouseIn = bubble.mouseIn;
-            newBubble.dragging = bubble.dragging;
-            newBubble.transitionInprogress = bubble.transitionInprogress;
-            newBubble.oldWidth = bubble.oldWidth;
-            newBubble.oldX = bubble.oldX;
-            newBubble.oldY = bubble.oldY;
-            newBubble.big = bubble.big;
-            newBubble.width = bubble.width;
-            newBubble.height = bubble.height;
-            if(newBubble.big) {
-                var index = openedTabels.indexOf(bubble);
-                if (index !== -1) {
-                    openedTabels[index] = newBubble;
-                }
-            }
-        }   
         
         if(!gender) {
             if(analytics && analyticsExists) {
                 var newBubble = new Table(bubble.tableData, root, rootGroup, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len);
-                showOpenedTables()
             }
             else {
                 var newBubble = new SizeCircle(bubble.tableData, root, rootGroup, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len);
@@ -235,7 +206,6 @@ var changeView = function(gen, stats, bubbleList, root) {
         else {
             if(analytics && analyticsExists) {
                 var newBubble = new Table(bubble.tableData, root, rootGroup, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len);
-                showOpenedTables();
             }
             else {
                 var newBubble = new RadialProgress(bubble.tableData, root, rootGroup, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len);
@@ -321,7 +291,6 @@ var drawBubbles = function(root) {
         //draw nodes sizeCircles, radialProgresses or tables, depends on the chosen view
         if(!gender) {
             if(analytics && analyticsExists) {
-                
                 var nodeCircle = new Table(bubbleData[i].year, root, bubble, x, y, id, size, maleProportion, fullName, labelSpanish, labelSpace, margin, color, "node", i, slice, length);
             }
             else { 
@@ -332,7 +301,6 @@ var drawBubbles = function(root) {
         
         } else {
             if(analytics && analyticsExists) {
-                
                 var radialProgress = new Table(bubbleData[i].year, root, bubble, x, y, id, size, maleProportion, fullName, labelSpanish, labelSpace, margin, color, "node", i, slice, length);
             }
             else {
@@ -446,7 +414,7 @@ var onRootClick = function(root) {
             if(root.nodeList[i].parent.classed("open")) {
                 onRootClick(root.nodeList[i]);
             }
-            root.nodeList[i].erase(false, false);
+            root.nodeList[i].erase(false);
         }
         root.nodeList = [];
         for(var i in root.connectionList) {
@@ -712,9 +680,14 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
         }
 
         if (this.parent.classed("mainpage")) {
-            text.text(this.labelSpanish)
-                .style("font-size", "22px")
-                .attr('y', this.width/2 + 25/3);
+            text.text("");
+            group.append("image")
+                .attr("xlink:href", "./images/" + this.labelSpanish + ".png")
+                .attr("x", this.width/2 - 40)
+                .attr("y", this.height/2 - 40)
+                .attr("width", 80)
+                .attr("height", 80);
+            
         }
 
         //append labels
@@ -824,7 +797,7 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
 }
 
 //erase bubbles
-SizeCircle.prototype.erase = function(changeView, big) {
+SizeCircle.prototype.erase = function(changeView) {
     
     //check if table data exists, if yes, decrease table counter and hide table button if counter is 0 
     if(!changeView) {
@@ -841,7 +814,7 @@ SizeCircle.prototype.erase = function(changeView, big) {
 
     //if table is erased, return connection to original position
     else {
-        if(this.root !== null && big) {
+        if(this.root !== null) {
             var connection = this.root.connectionList[this.position]
             connection.stopDrag();  
         }
@@ -887,6 +860,10 @@ SizeCircle.prototype.calculateAttributes = function() {
 //handle click on bubble
 SizeCircle.prototype.handleClick = function() {
 
+    //check if further connections exist
+    var dataAndLinks = findNodesAndLinks(this.id, links, data);
+    if(!this.parent.classed("mainpage") && dataAndLinks[1].length == 0) return;
+
     //click on non root bubble
     if(this.parent.classed("node")) {
         this.parent.classed("node", false);  
@@ -908,12 +885,12 @@ SizeCircle.prototype.handleClick = function() {
             }
 
             for(var i in this.root.nodeList) {
-                this.root.nodeList[i].erase(false, false);
+                this.root.nodeList[i].erase(false);
             }
             for(var i in this.root.connectionList) {
                 this.root.connectionList[i].erase();
             }
-            this.root.erase(false, false);
+            this.root.erase(false);
             rootBubble = this;
             this.root = null; 
 
@@ -1376,13 +1353,12 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
     //special attributes used only in table class that are used to control dragging, clicking and hover events
     this.newWidth = 60 * Object.keys(tableData).length + 270;
     this.newHeight = 500 - (2 * (this.labelSpace - this.margin));
+    this.newX = x;
+    this.newY = y;
     this.fixed = false;
     this.mouseIn = false;
     this.dragging = false;
     this.transitionInprogress = false;
-    this.oldWidth;
-    this.oldX;
-    this.oldY;
     this.big = false;
 
     this.nodeList = [];
@@ -1408,27 +1384,27 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                 oldEventX = d3.event.x - 1;
                 oldEventY = d3.event.y - 1;
             }
-            me.width = me.width + (d3.event.x - oldEventX);
-            me.height = me.height + (d3.event.y - oldEventY);
+            me.newWidth = me.newWidth + (d3.event.x - oldEventX);
+            me.newHeight = me.newHeight + (d3.event.y - oldEventY);
 
             oldEventX = d3.event.x;
             oldEventY = d3.event.y;
             me.svg.selectAll(".tableBox").remove();
-            d3.select(this).attr("width", me.width).attr("height", me.height);
+            d3.select(this).attr("width", me.newWidth + 2 * (me.labelSpace + me.margin)).attr("height", me.newHeight + 2 * (me.labelSpace + me.margin));
 
-            me.generateTable(me.width - 2 * (me.labelSpace + me.margin), me.height - 2 * (me.labelSpace + me.margin), me.big);
+            me.generateTable(me.newWidth, me.newHeight, me.big);
         }
 
         //otherwise change table position
         else {
-            me.x = d3.event.x;
-            me.y = d3.event.y;
-            d3.select(this).attr("x", me.x).attr("y", me.y);   
+            me.newX = d3.event.x;
+            me.newY = d3.event.y;
+            d3.select(this).attr("x", me.newX).attr("y", me.newY);   
         }
 
         //change position of connection to follow the table position
-        var connection = me.root.connectionList[me.position]
-        connection.followDrag(me.x + me.newWidth/2, me.y + me.newHeight/2);
+        var connection = me.root.connectionList[me.position];
+        connection.followDrag(me.newX + me.newWidth/2 + me.labelSpace + me.margin, me.newY + me.newHeight/2 + me.labelSpace + me.margin);
     }
 
     //drag starts
@@ -1464,10 +1440,8 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
             .attr("height", this.height)
             .attr("text", this.fullName)
       
-
         background = this.svg.append("g").attr("class","component")
             .attr("cursor","pointer")
-
         
         //append labels
         this.label = background.append("text")
@@ -1488,13 +1462,13 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                 .attr("x", textPosition(+this.position, +this.slice, +this.startAngle, this.width, this.labelSpace)[0])
                 .attr("y", textPosition(+this.position, +this.slice, +this.startAngle, this.width, this.labelSpace)[1]);   
         }
-        
-        //function that draws the table
-        this.generateTable(this.width - 2 * (this.labelSpace + this.margin), this.height - 2 * (this.labelSpace + this.margin), this.big);
-        
-        if(this.big) {
-            this.svg.call(drag); 
-        }
+ 
+        background.append("image")
+            .attr("xlink:href", "./images/noanalytics.png")
+            .attr("x", this.margin + this.labelSpace)
+            .attr("y", this.margin + this.labelSpace)
+            .attr("width", this.radialWidth)
+            .attr("height", this.radialWidth);
 
         //asign click, drag and hover events to tables
         this.svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
@@ -1502,7 +1476,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
             tooltip.attr("text", me.svg.attr("text"));
             return tooltip.style("visibility", "visible");
         })
-        this.svg.on("mouseout", function(){return tooltip.style("visibility", "hidden"); }) 
+        this.svg.on("mouseout", function(){return tooltip.style("visibility", "hidden"); }); 
 
         this.svg.on("click", function(d){ 
             
@@ -1512,15 +1486,6 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
             } 
             if(!me.transitionInprogress) {
                 if(me.fixed) {
-
-                    //if table is opened and fixed, close it and delete from list of opened tables
-                    for(var i in openedTabels) {
-                        if(openedTabels[i].id == me.id) {
-                            var index = i;
-                            break;
-                        }
-                    }
-                    openedTabels.splice(index, 1); 
                     me.fixed = false;
                     
                     //remove old table
@@ -1529,29 +1494,30 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                     //move svg back to original position and size
                     me.svg
                         .transition().duration(500).ease("linear").delay(0)
-                        .attr("width", me.oldWidth)
-                        .attr("height", me.oldWidth)
-                        .attr("x", me.oldX)
-                        .attr("y", me.oldY) 
+                        .attr("width", me.width)
+                        .attr("height", me.height)
+                        .attr("x", me.x)
+                        .attr("y", me.y) 
                         .each("end", function() {
                             me.transitionInprogress = false;
                             me.mouseIn = false;     
                         });
 
-                    me.x = me.oldX;
-                    me.y = me.oldY;
-                    me.width = me.oldWidth;
-                    me.height = me.oldWidth;
                     me.big = false; 
 
-                    //generate small table
-                    me.generateTable(me.oldWidth - 2 * (me.labelSpace + me.margin), me.oldWidth - 2 * (me.labelSpace + me.margin), false);
+                    //create table image
+                    background.append("image")
+                        .attr("xlink:href", "./images/noanalytics.png")
+                        .attr("x", me.margin + me.labelSpace)
+                        .attr("y", me.margin + me.labelSpace)
+                        .attr("width", me.radialWidth)
+                        .attr("height", me.radialWidth);
 
                     //move labels to original position
                     me.label
                         .transition().duration(300).ease("linear").delay(0)
-                        .attr("x", textPosition(+me.position, +me.slice, +me.startAngle, me.oldWidth, me.labelSpace)[0]) 
-                        .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, me.oldWidth, me.labelSpace)[1]) 
+                        .attr("x", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[0]) 
+                        .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[1]) 
 
                     //move lines to original position
                     var connection = me.root.connectionList[me.position]
@@ -1560,8 +1526,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
 
                 //if table is not fixed, fix it and push it in a list
                 else {
-                    me.fixed = true;
-                    openedTabels.push(me);     
+                    me.fixed = true;  
                 }
             }
         });    
@@ -1579,14 +1544,13 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                 
                 //remove small table and make a big one
                 me.svg.selectAll(".tableBox").remove();
+                me.svg.selectAll("image").remove();
+                me.newWidth = 60 * Object.keys(tableData).length + 270;
+                me.newHeight = 500 - (2 * (me.labelSpace - me.margin));
+
                 var halfX = me.newWidth/2;
                 var halfY = me.newHeight/2;
                 var tableMargin = me.labelSpace + me.margin;
-                me.oldWidth = me.width;
-                me.oldX = me.x;
-                me.oldY = me.y;
-                me.width = me.newWidth + 2 * tableMargin;
-                me.height = me.newHeight + 2 * tableMargin;
                 me.big = true;
 
                 //make svg bigger
@@ -1600,27 +1564,24 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
 
                 //check for page borders and position table inside the page
                 if(me.x + halfX + 2 * tableMargin > 1200) {
-                    var newX =  1200 - me.newWidth - tableMargin;
-                    me.svg.attr("x", newX)
-                    me.x = newX;
+                    me.newX =  1200 - me.newWidth - tableMargin;
+                    me.svg.attr("x", me.newX)
                 }
                 else if (me.x - halfX + tableMargin < 0) {
-                    var newX = 0 - tableMargin;
-                    me.svg.attr("x", newX)
-                    me.x = newX;
+                    me.newX = 0 - tableMargin;
+                    me.svg.attr("x", me.newX)
                 }
                 else {
-                    me.svg.attr("x", me.x - halfX)
-                    me.x = me.x - halfX;
+                    me.newX = me.x - halfX;
+                    me.svg.attr("x", me.newX)
                 }
                 if (me.y - halfY + tableMargin < 0) {
-                    var newY = 0 - tableMargin;
-                    me.svg.attr("y", newY)
-                    me.y - newY;
+                    me.newY = 0 - tableMargin;
+                    me.svg.attr("y", me.newY)
                 }
                 else {
-                    me.svg.attr("y", me.y - halfY)
-                    me.y = me.y -halfY;
+                    me.newY = me.y - halfY;
+                    me.svg.attr("y", me.newY)
                 }
 
                 //generate big table and move it to the front 
@@ -1645,23 +1606,24 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
             //make svg small again
             me.svg
                 .transition().duration(300).ease("linear").delay(0)
-                .attr("width", me.oldWidth)
-                .attr("height", me.oldWidth)
-                .attr("x", me.oldX)
-                .attr("y", me.oldY)  
+                .attr("width", me.width)
+                .attr("height", me.height)
+                .attr("x", me.x)
+                .attr("y", me.y)  
           
-            //generate small table
-            me.generateTable(me.oldWidth - 2 * (me.labelSpace + me.margin), me.oldWidth - 2 * (me.labelSpace + me.margin), false);
+            //generate table image
+            background.append("image")
+                .attr("xlink:href", "./images/noanalytics.png")
+                .attr("x", me.margin + me.labelSpace)
+                .attr("y", me.margin + me.labelSpace)
+                .attr("width", me.radialWidth)
+                .attr("height", me.radialWidth);
 
             me.label
                 .transition().duration(300).ease("linear").delay(0)
-                .attr("x", textPosition(+me.position, +me.slice, +me.startAngle, me.oldWidth, me.labelSpace)[0]) 
-                .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, me.oldWidth, me.labelSpace)[1])
+                .attr("x", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[0]) 
+                .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[1])
 
-            me.x = me.oldX;
-            me.y = me.oldY;
-            me.width = me.oldWidth;
-            me.height = me.oldWidth;
             me.big = false; 
 
             var connection = me.root.connectionList[me.position]
@@ -1672,44 +1634,48 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
 
         //resize table on click on lower right edge
         this.svg.on("mousemove", function(){
-            var edgeX = me.width - me.labelSpace - me.margin;
-            var edgeY = me.height - me.labelSpace - me.margin;
-            var coordinates = [0, 0];
-            coordinates = d3.mouse(me.svg.node());
-            var mouseX = coordinates[0];
-            var mouseY = coordinates[1];
-            var is_firefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
+            if(me.big) {
+                var edgeX = me.newWidth + me.labelSpace + me.margin;
+                var edgeY = me.newHeight + me.labelSpace + me.margin;
+                var coordinates = [0, 0];
+                coordinates = d3.mouse(me.svg.node());
+                var mouseX = coordinates[0];
+                var mouseY = coordinates[1];
+                var is_firefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
+                console.log(mouseX, edgeX);
+                console.log(mouseY, edgeY);
 
-            //firefox compatibility
-            if(is_firefox) {
-                if(mouseX >me.x + edgeX - 40 && mouseX < me.x + edgeX && mouseY > me.y + edgeY - 40 && mouseY < me.y + edgeY) {
-                    stretch = true;
-                    background.attr("cursor","se-resize");
-                }
-                else {
-                    
-                    if(!me.dragging) {
-                        background.attr("cursor","pointer");
-                        stretch = false;
+                //firefox compatibility
+                if(is_firefox) {
+                    if(mouseX > me.newX + edgeX - 40 && mouseX < me.newX + edgeX && mouseY > me.newY + edgeY - 40 && mouseY < me.newY + edgeY) {
+                        stretch = true;
+                        background.attr("cursor","se-resize");
+                    }
+                    else {
+                        
+                        if(!me.dragging) {
+                            background.attr("cursor","pointer");
+                            stretch = false;
+                        }
                     }
                 }
-            }
-
-            //all other browsers
-            else {
-                if(mouseX > edgeX - 40 && mouseX < edgeX && mouseY > edgeY - 40 && mouseY < edgeY) {
-                    stretch = true;
-                    background.attr("cursor","se-resize");
-                }
+               
+                //all other browsers
                 else {
-                    
-                    if(!me.dragging) {
-                        background.attr("cursor","pointer");
-                        stretch = false;
+                    if(mouseX > edgeX - 40 && mouseX < edgeX && mouseY > edgeY - 40 && mouseY < edgeY) {
+                        stretch = true;
+                        background.attr("cursor","se-resize");
+                    }
+                    else {
+                        
+                        if(!me.dragging) {
+                            background.attr("cursor","pointer");
+                            stretch = false;
+                        }
                     }
                 }
+                return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");
             }
-            return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");
         })
   
     }
@@ -1818,7 +1784,6 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                     else if(i == 6) boxText.text("Tasa de eficiencia")
                     else boxText.text("Tasa de rendimiento")
                 } 
-
             }
 
             //add row titles
