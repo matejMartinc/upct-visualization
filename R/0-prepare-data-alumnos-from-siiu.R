@@ -8,7 +8,8 @@ library("opadar")
 library("dplyr")
 library("XML")
 datapath <- c("~/OPADA/data/SIIU/ficheros/",
-              "~/OPADA/data/SIIU/ficheros-codigos/")
+              "~/OPADA/data/SIIU/ficheros-codigos/",
+              "~/OPADA/data/acad/")
 ##
 ##------------------------------------------------------------------------------
 ##
@@ -23,23 +24,6 @@ planes <- read.table(file = datafile("planes_centros.txt"),
   ## hemos hecho el select y el distinct porque hay un plan que se repite.
   select(-contains("FECHA")) %>%
   distinct
-
-## centros <- xmlToDataFrame(datafile("U06414AX0101_02.XML"))
-## centros <- centros %>%
-## mutate(CENTRO_ID = plyr::mapvalues(Unidad,
-##                                    from = c(30013906,
-##                                             30008391,
-##                                             30013086,
-##                                             30013104,
-##                                             30013074,
-##                                             30013098,
-##                                             30013271,
-##                                             30013396,
-##                                             30013891),
-##                                    to = c(222,
-##                                           6401,
-##                                           6402,
-
 
 ##
 ## -----------------------------------------------------------------------------
@@ -89,6 +73,33 @@ incoming <- xmlToDataFrame(datafile("U06413AC0401_02.XML")) %>%
                                 to = c("Hombre", "Mujer")))
 ## nos quedamos sólo con el Sexo..
 incoming <- incoming[c("Universidad", "Sexo")]
+## -----------------------------------------------------------------------------
+##
+## We get information about PhD Students and Títulos Propios
+##
+## -----------------------------------------------------------------------------
+doct.ep <- read.table(datafile("macrotabla_crue_todo_2009-10_a_2014-15.txt"),
+                      skip = 43, header = TRUE, sep = "|",
+                      colClasses = "character", fileEncoding = "latin1") %>%
+  ## nos quedamos con los doctorados (DOF y TCL) y los estudios propios 'EP'
+  filter(SUBTIPO_ESTUDIO_ID %in% c('DOF', 'TCL', 'EP'),
+         !grepl("[a-z]", PLAN_ID, ignore.case = TRUE))
+doct.ep <- doct.ep %>%
+  filter(ANYACA_ID == '2014-15') %>%
+  mutate(Universidad = "064",
+         CENTRO_ACRONIMO = ifelse(SUBTIPO_ESTUDIO_ID %in% c('DOF', 'TCL'),
+                         "PhD",
+                         "EP"),
+         Sexo = plyr::mapvalues(SEXO_ID, from = c("H", "D"),
+                                to = c("Hombre", "Mujer")),
+         labelSpanish = ifelse(SUBTIPO_ESTUDIO_ID %in% c('DOF', 'TCL'),
+                         "PhD",
+                         "Estudios Propios"),
+         fullNameSpanish = ifelse(SUBTIPO_ESTUDIO_ID %in% c('DOF', 'TCL'),
+                         "Alumnos de doctorado",
+                         "Estudios Propios (títulos propios, U. Mayores, etc..)")) %>%
+  select(Universidad, CENTRO_ACRONIMO, Sexo, labelSpanish, fullNameSpanish)
+
 
 ## We save the  object for further use
-save(alumnos, incoming, file = "data/alumnos.Rdata")
+save(alumnos, incoming, doct.ep, file = "data/alumnos.Rdata")

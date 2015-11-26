@@ -20,6 +20,10 @@ alumnos <- alumnos %>%
 incoming <- incoming %>%
   mutate(nivel1 = Universidad,
          nivel2 = paste(nivel1, "INCOMING", sep = "/"))
+doct.ep <- doct.ep %>%
+  mutate(nivel1 = Universidad,
+         nivel2 = paste(nivel1, CENTRO_ACRONIMO, sep = "/"))
+
 
 ## -----------------------------------------------------------------------------
 ##
@@ -85,15 +89,24 @@ nodes_planes <- with(alumnos %>%
 ##
 ## ----------------------------------------------------------------------------
 nodes_centros <- rbind(nodes_centros,
-                       with(incoming, data.frame(id = nivel2,
-                                                 labelSpanish = "Internacionales",
-                                                 labelEnglish = "Incoming Students",
-                                                 color = "rgb(63, 127, 205)",
-                                                 fullNameSpanish =
-                                                   "Estudiantes de movilidad internacional dentro de convenios",
-                                                 fullNameEnglish =
-                                                   "Incoming international students")
-                         %>% distinct))  
+                       with(incoming,
+                            data.frame(id = nivel2,
+                                       labelSpanish = "Internacionales",
+                                       labelEnglish = "Incoming Students",
+                                       color = "rgb(63, 127, 205)",
+                                       fullNameSpanish =
+                                         "Estudiantes de movilidad internacional dentro de convenios",
+                                       fullNameEnglish =
+                                         "Incoming international students") %>%
+                              distinct),
+                       with(doct.ep,
+                            data.frame(id = nivel2,
+                                       labelSpanish = labelSpanish,
+                                       labelEnglish = labelSpanish,
+                                       color = "rgb(63, 127, 205)",
+                                       fullNameSpanish = fullNameSpanish,
+                                       fullNameEnglish = fullNameSpanish) %>%
+                              distinct))
 nodes_info <-
   rbind(nodes_info,
         nodes_centros,
@@ -111,6 +124,9 @@ links_12<- alumnos %>%
   distinct
 links_12 <- rbind(links_12,
                   incoming %>%
+                    select(nivel1, nivel2) %>%
+                    distinct,
+                  doct.ep %>%
                     select(nivel1, nivel2) %>%
                     distinct)
 names(links_12) <- c("source", "target")
@@ -150,7 +166,8 @@ indicators <- function(alumnos, groupvariable){
 ## doctorandos)
 
 datosnivel12 <- rbind(alumnos %>% select(nivel1, nivel2, Sexo),
-                     incoming %>% select(nivel1, nivel2, Sexo))
+                      incoming %>% select(nivel1, nivel2, Sexo),
+                      doct.ep %>% select(nivel1, nivel2, Sexo))
 ## generamos los números de de los nodos.
 nodes_figures <-
   rbind(indicators(datosnivel12, "nivel1"),
