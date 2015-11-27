@@ -55,8 +55,11 @@ document.addEventListener("DOMContentLoaded", function (event) {
     _selectorTable.addEventListener('change', function (event) {
         if (_selectorTable.checked) {
            document.querySelector('input[id=cmn-toggle]').checked = false;
+           var isGender = gender;
            gender = false;
            changeView(gender, true, [rootBubble], null);
+           if(isGender) createBanner(false);
+           
         } else {
            changeView(gender, false, [rootBubble], null);
         }
