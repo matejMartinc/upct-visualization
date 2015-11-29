@@ -161,28 +161,24 @@ links_12<- pdi %>%
   distinct
 links_12 <- rbind(links_12,
                   pas.funcionario %>%
-                    select(nivel1, nivel2) %>%
-                    distinct,
+                    select(nivel1, nivel2),
                   pas.laboral %>%
-                    select(nivel1, nivel2) %>%
-                    distinct,
+                    select(nivel1, nivel2),
                   pas.idi %>%
-                    select(nivel1, nivel2) %>%
-                    distinct)
+                    select(nivel1, nivel2)) %>%
+  distinct
 names(links_12) <- c("source", "target")
 links_23 <- pdi %>%
   select(nivel2, nivel3) %>%
   distinct
 links_23 <- rbind(links_23,
                   pas.funcionario %>%
-                    select(nivel2, nivel3) %>%
-                    distinct,
+                    select(nivel2, nivel3),
                   pas.laboral %>%
-                    select(nivel2, nivel3) %>%
-                    distinct,
+                    select(nivel2, nivel3),
                   pas.idi %>%
-                    select(nivel2, nivel3) %>%
-                    distinct)
+                    select(nivel2, nivel3)) %>%
+  distinct
 names(links_23) <- c("source", "target")
 
 links_34 <- pdi %>%
@@ -190,8 +186,8 @@ links_34 <- pdi %>%
   distinct
 links_34 <- rbind(links_34,
                   pas.funcionario %>%
-                    select(nivel3, nivel4) %>%
-                    distinct)
+                    select(nivel3, nivel4)) %>%
+                    distinct
 names(links_34) <- c("source", "target")
 links_45 <- pas.funcionario %>%
   select(nivel4, nivel5) %>%
