@@ -16,6 +16,7 @@ var scaleFactor;
 var rootBubble;
 var data;
 var links;
+var banners = [];
 
 //shown on hover
 var tooltip = d3.select("body")
@@ -24,7 +25,6 @@ var tooltip = d3.select("body")
     .style("position", "absolute")
     .style("z-index", "10")
     .style("visibility", "hidden");
-
 
 //this listens for gender and table button clicks and triggers changeview
 document.addEventListener("DOMContentLoaded", function (event) {
@@ -54,7 +54,12 @@ document.addEventListener("DOMContentLoaded", function (event) {
     }
     _selectorTable.addEventListener('change', function (event) {
         if (_selectorTable.checked) {
+           document.querySelector('input[id=cmn-toggle]').checked = false;
+           var isGender = gender;
+           gender = false;
            changeView(gender, true, [rootBubble], null);
+           if(isGender) createBanner(false);
+           
         } else {
            changeView(gender, false, [rootBubble], null);
         }
@@ -95,19 +100,24 @@ var readData = function(directory) {
     d3.csv("./data/"+directory+"/nodes_info.csv", function(data1) {
         d3.csv("./data/"+directory+"/nodes_figures.csv", function(data2) {
             d3.csv("./data/"+directory+"/links.csv", function(allLinks) {
+                d3.csv("./data/"+directory+"/banners.csv", function(bannersData) {
 
-                //execute this after data has loaded
-                data = mergeData(data1, data2);
-                links = allLinks;
-                sizeStandard = data[0].size;
-                createMainBubble("root main");
-                createBanner(false);
+                    //execute this after data has loaded
+                    data = mergeData(data1, data2);
+                    links = allLinks;
+                    banners = [];
+                    banners.push(bannersData[0].text);
+                    banners.push(bannersData[1].text);
+                    sizeStandard = data[0].size;
+                    createMainBubble("root main");
+                    createBanner(false);
+                });
             });
         });
     });
 }
 
-//creates the root bubble - root is always firs row of data
+//creates the root bubble - root is always first row of data
 var createMainBubble = function(classes) {
     scaleFactor = 1;
             
@@ -132,6 +142,10 @@ var createMainBubble = function(classes) {
         rootBubble = new RadialProgress(data[0].year, null, rootGroup, rootX, rootY, rootId, rootSize, maleProportion, rootFullName, rootLabelSpanish, rootLabelSpace, rootMargin, rootColor, classes, 1, 360, 1);
         rootBubble.draw();
     }
+
+    rootBubble.parent.classed("open", true);
+    rootBubble.classes = rootBubble.parent.attr("class");
+    drawBubbles(rootBubble);
 }
 
 //define behaviour and visibility of back button
@@ -145,7 +159,6 @@ var goBack = function() {
         level = 0;
         createMainBubble("root open");
         tableCounter = 0;
-        drawBubbles(rootBubble);
     }
     else {
         document.querySelector("input.cmn-toggle + label").style.visibility="hidden";
@@ -206,6 +219,9 @@ var changeView = function(gen, stats, bubbleList, root) {
         else {
             if(analytics && analyticsExists) {
                 var newBubble = new Table(bubble.tableData, root, rootGroup, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len);
+            }
+            else if(analytics && !analyticsExists) {
+                var newBubble = new SizeCircle(bubble.tableData, root, rootGroup, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len);
             }
             else {
                 var newBubble = new RadialProgress(bubble.tableData, root, rootGroup, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len);
@@ -303,6 +319,9 @@ var drawBubbles = function(root) {
             if(analytics && analyticsExists) {
                 var radialProgress = new Table(bubbleData[i].year, root, bubble, x, y, id, size, maleProportion, fullName, labelSpanish, labelSpace, margin, color, "node", i, slice, length);
             }
+            else if(analytics && !analyticsExists) {
+                var radialProgress = new SizeCircle(bubbleData[i].year, root, bubble, x, y, id, size, maleProportion, fullName, labelSpanish, labelSpace, margin, color, "node", i, slice, length);
+            }
             else {
                 var radialProgress = new RadialProgress(bubbleData[i].year, root, bubble, x, y, id, size, maleProportion, fullName, labelSpanish, labelSpace, margin, color, "node", i, slice, length);
             }
@@ -385,10 +404,10 @@ var createBanner = function(remove) {
         .attr('y', 422)
         .attr("transform", "rotate(270 0, 422)");
     if(!gender) {
-        text.text("tamaño de las facultades")
+        text.text(banners[0]);
     }
     else {
-        text.text("Proporción de género")
+        text.text(banners[1]);
     }
 
     text.transition().delay(0).duration(750)
@@ -893,6 +912,7 @@ SizeCircle.prototype.handleClick = function() {
             this.root.erase(false);
             rootBubble = this;
             this.root = null; 
+            var me = this;
 
             this.svg.transition()
                .duration(750)
@@ -900,9 +920,13 @@ SizeCircle.prototype.handleClick = function() {
                .attr("y",this.y) 
                .attr("width", this.width)
                .attr("height", this.height)
+               .each("end", function() {
+                    me.parent.classed("open", true);
+                    me.classes = me.parent.attr("class");
+                    drawBubbles(me);
+                });
             
-            this.zoomTransition();
-           
+            this.zoomTransition();         
         }
         else {
             this.parent.classed("root leveltwo", true);
@@ -914,6 +938,7 @@ SizeCircle.prototype.handleClick = function() {
     if(this.parent.classed("mainpage")) {
         document.getElementById("back-button").style.visibility= "visible";
         document.querySelector("input.cmn-toggle + label").style.visibility="visible";
+        this.parent.moveToFront();
         this.x = 600 - this.r - this.margin;
         this.y = 430 - this.r - this.margin;
         var id = this.id;
@@ -1464,7 +1489,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
         }
  
         background.append("image")
-            .attr("xlink:href", "./images/noanalytics.png")
+            .attr("xlink:href", "./images/analytics_bubble.png")
             .attr("x", this.margin + this.labelSpace)
             .attr("y", this.margin + this.labelSpace)
             .attr("width", this.radialWidth)
@@ -1507,7 +1532,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
 
                     //create table image
                     background.append("image")
-                        .attr("xlink:href", "./images/noanalytics.png")
+                        .attr("xlink:href", "./images/analytics_bubble.png")
                         .attr("x", me.margin + me.labelSpace)
                         .attr("y", me.margin + me.labelSpace)
                         .attr("width", me.radialWidth)
@@ -1613,7 +1638,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
           
             //generate table image
             background.append("image")
-                .attr("xlink:href", "./images/noanalytics.png")
+                .attr("xlink:href", "./images/analytics_bubble.png")
                 .attr("x", me.margin + me.labelSpace)
                 .attr("y", me.margin + me.labelSpace)
                 .attr("width", me.radialWidth)
@@ -1642,8 +1667,6 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                 var mouseX = coordinates[0];
                 var mouseY = coordinates[1];
                 var is_firefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
-                console.log(mouseX, edgeX);
-                console.log(mouseY, edgeY);
 
                 //firefox compatibility
                 if(is_firefox) {
