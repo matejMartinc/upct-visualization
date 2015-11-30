@@ -42,6 +42,7 @@ informe.pdi <- informe.pdi %>%
   left_join(categorias.pdi,
             by = c("CategoriaCuerpoEscala" = "ID")) %>%
   rename(CategoriaCuerpoEscala_DESC = NOMBRE)
+
 ##-----------------------------------------------------------------------------
 ## Cambiamos la CategoríaCuerpoEscala_DESC de los LI y LIF por Laboral de
 ##investigación y Laboral de investigación en formación
@@ -50,6 +51,11 @@ informe.pdi$CategoriaCuerpoEscala_DESC[informe.pdi$ID_TIPO_REGIMEN_JURIDICO ==
                                       "LI"] <- "Laboral de Investigación"
 informe.pdi$CategoriaCuerpoEscala_DESC[informe.pdi$ID_TIPO_REGIMEN_JURIDICO ==
                                       "LIF"] <- "Laboral de Investigación en Formación"
+informe.pdi$CategoriaCuerpoEscala[informe.pdi$ID_TIPO_REGIMEN_JURIDICO ==
+                                      "LI"] <- "LI"
+informe.pdi$CategoriaCuerpoEscala[informe.pdi$ID_TIPO_REGIMEN_JURIDICO ==
+                                      "LIF"] <- "LIF"
+
 informe.pdi <- informe.pdi %>%
   mutate(CategoriaCuerpoEscala_DESC =
            plyr::mapvalues(CategoriaCuerpoEscala_DESC,
