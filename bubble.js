@@ -11,7 +11,7 @@ var gender = false;
 var analytics = false;
 var tableCounter = 0;
 var level = 0;
-var sizeStandard;
+var sizeStandard = 6000;
 var scaleFactor;
 var rootBubble;
 var data;
@@ -108,7 +108,7 @@ var readData = function(directory) {
                     banners = [];
                     banners.push(bannersData[0].text);
                     banners.push(bannersData[1].text);
-                    sizeStandard = data[0].size;
+                    //sizeStandard = data[0].size;
                     createMainBubble("root main");
                     createBanner(false);
                 });
@@ -119,10 +119,10 @@ var readData = function(directory) {
 
 //creates the root bubble - root is always first row of data
 var createMainBubble = function(classes) {
-    scaleFactor = 1;
+    scaleFactor = Math.sqrt(sizeStandard) / Math.sqrt(data[0].size);
             
     var rootGroup = vis.selectAll("g.root").data([data[0]]).enter().append("g");
-    var rootR = Math.sqrt(data[0].size);
+    var rootR = Math.sqrt(data[0].size) * scaleFactor;
     var rootMargin = 3;
     var rootLabelSpace = 110;
     var rootX = 600 - rootR - rootMargin - rootLabelSpace;
@@ -619,6 +619,7 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
     this.connectionList = [];
     
     var me = this;
+    console.log(this.parent);
 
     //on click make bubble bigger and position it in centre - zoom effect  
     this.zoomTransition = function() {
@@ -891,6 +892,7 @@ SizeCircle.prototype.handleClick = function() {
         if(!this.root.parent.classed("levelone") && !this.root.parent.classed("leveltwo")) {
             level = 1;
             this.parent.classed("root levelone open", true);
+            this.r = this.r / scaleFactor;
             scaleFactor = Math.sqrt(sizeStandard) / Math.sqrt(this.size);
             this.x = this.root.x;
             this.y = this.root.y;
