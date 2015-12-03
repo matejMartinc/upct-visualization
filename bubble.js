@@ -131,8 +131,8 @@ var createMainBubble = function(classes) {
     var rootR = Math.sqrt(data[0].size) * scaleFactor;
     var rootMargin = 3;
     var rootLabelSpace = 110;
-    var rootX = 600 - rootR - rootMargin - rootLabelSpace;
-    var rootY = 430 - rootR - rootMargin - rootLabelSpace;
+    var rootX = middleX - rootR - rootMargin - rootLabelSpace;
+    var rootY = middleY - rootR - rootMargin - rootLabelSpace;
     var rootId = data[0].id;
     var rootSize = data[0].size;
     var rootFullName = data[0].fullNameSpanish;
@@ -389,12 +389,11 @@ var pan = function(x,y) {
 
 var zoom = function(shrink) {
     var oldMiddleX = middleX;
-    var oldMiddleY = middleY;
     if(shrink) { 
         size += 100;
         middleX = size/2;
         var moveX = middleX - oldMiddleX;
-        var moveY = moveX - 12;
+        var moveY = moveX - 12; 
     }
     else { 
         size -= 100;
@@ -402,7 +401,7 @@ var zoom = function(shrink) {
         var moveX = -(oldMiddleX - middleX);
         var moveY = moveX + 12;
     }
-
+    middleY = size/2.9;
     
     createBanner(false);
     vis.attr("viewBox", "0 0 " + size + " " + size + "");
