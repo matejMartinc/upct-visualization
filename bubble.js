@@ -404,7 +404,7 @@ var zoom = function(shrink) {
     }
 
     
-    //middleY = middleY - move;
+    createBanner(false);
     vis.attr("viewBox", "0 0 " + size + " " + size + "");
     changeView(gender, analytics, [rootBubble], null, moveX, moveY);
 }
@@ -424,19 +424,20 @@ var calculateColor = function(rgb) {
 var createBanner = function(remove) {
     d3.selectAll(".banner").remove();
     if(remove) return;
-
+    var start = size/4.5;
+288
     var banner = vis.append("path")
         .classed("banner", true)
             .attr("fill", data[0].color)
             .attr("d", function(d) {
-                return "M 0 288 L 0 313 L 0 532 L 0 557 L 0 288"      
+                return "M 0 " + start + " L 0 " +(start + 25) + " L 0 " + (start + 244) + " L 0 " + (start + 269) + " L 0 " + start + "";      
             })
             .attr("stroke", calculateColor(data[0].color))
             .attr("stroke-width", 1);
 
     banner.transition().delay(0).duration(750)
         .attr("d", function(d) {
-            return "M 0 288 L 25 313 L 25 532 L 0 557 L 0 288"
+            return "M 0 " + start + " L 25 " +(start + 25) + " L 25 " + (start + 244) + " L 0 " + (start + 269) + " L 0 " + start + ""; 
         });
 
     var text = vis.append("text")
@@ -445,8 +446,8 @@ var createBanner = function(remove) {
         .style('font-size', "20px")
         .style("text-anchor", "middle")
         .attr('x', 0)
-        .attr('y', 422)
-        .attr("transform", "rotate(270 0, 422)");
+        .attr('y', start + 134)
+        .attr("transform", "rotate(270 0," + (start + 134) + ")");
     if(!gender) {
         text.text(banners[0]);
     }
@@ -456,7 +457,7 @@ var createBanner = function(remove) {
 
     text.transition().delay(0).duration(750)
         .attr('x', 20)
-        .attr("transform", "rotate(270 20, 422)");
+        .attr("transform", "rotate(270 20," + (start + 134) + ")");
 }
 
 //called on click on the root bubble
