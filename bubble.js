@@ -1,8 +1,13 @@
+var middleX = 600;
+var middleY = 430;
+var size = 1200;
+
+
 var vis = d3.select("#graph")
     .classed("svg-container", true)
     .append("svg")
     .attr("preserveAspectRatio", "xMinYMin meet")
-    .attr("viewBox", "0 0 1200 1200")
+    .attr("viewBox", "0 0 " + size + " " + size + "")
 
     //class to make it responsive
     .classed("svg-content-responsive", true);
@@ -17,6 +22,7 @@ var rootBubble;
 var data;
 var links;
 var banners = [];
+var isTouchDevice = 'ontouchstart' in document.documentElement;
 
 //shown on hover
 var tooltip = d3.select("body")
@@ -38,10 +44,10 @@ document.addEventListener("DOMContentLoaded", function (event) {
         document.querySelector('input[id=analytics-toggle]').checked = false;
         analytics = false;
         if (_selector.checked) {
-           changeView(true, analytics, [rootBubble], null);
+           changeView(true, analytics, [rootBubble], null, 0, 0);
            createBanner(false);
         } else {
-           changeView(false, analytics, [rootBubble], null);
+           changeView(false, analytics, [rootBubble], null, 0, 0);
            createBanner(false);
         }
 
@@ -57,11 +63,11 @@ document.addEventListener("DOMContentLoaded", function (event) {
            document.querySelector('input[id=cmn-toggle]').checked = false;
            var isGender = gender;
            gender = false;
-           changeView(gender, true, [rootBubble], null);
+           changeView(gender, true, [rootBubble], null, 0, 0);
            if(isGender) createBanner(false);
            
         } else {
-           changeView(gender, false, [rootBubble], null);
+           changeView(gender, false, [rootBubble], null, 0, 0);
         }
     });
 });
@@ -163,13 +169,18 @@ var goBack = function() {
     else {
         document.querySelector("input.cmn-toggle + label").style.visibility="hidden";
         document.getElementById("back-button").style.visibility="hidden";
+        d3.selectAll(".zooming").style("visibility", "hidden");
+        size = 1200;
+        middleX = 600;
+        middleY = 430;
+        vis.attr("viewBox", "0 0 " + size + " " + size + "")
         createMainPage();
         createBanner(true);
     }
 }
 
 //change from size to maleproportion or table view
-var changeView = function(gen, stats, bubbleList, root) {
+var changeView = function(gen, stats, bubbleList, root, moveX, moveY) {
     gender = gen;
     analytics = stats;
 
@@ -182,8 +193,8 @@ var changeView = function(gen, stats, bubbleList, root) {
     for(var i in bubbleList) {
         var bubble = bubbleList[i];
         bubble.erase(true);
-        var x = bubble.x;
-        var y = bubble.y;
+        var x = bubble.x + moveX;
+        var y = bubble.y + moveY;
         var classes = bubble.classes;
         var r = bubble.r;
         var margin = bubble.margin;
@@ -233,17 +244,24 @@ var changeView = function(gen, stats, bubbleList, root) {
             rootBubble = newBubble;   
         }
         else {
-            for(var j in bubble.root.connectionList) {
-                bubble.root.connectionList[j].changeColor();
-            }
-            root.connectionList = bubble.root.connectionList;
             root.nodeList.push(newBubble);
-            newBubble.addMouseEvents();
-            
+            for(var j in root.connectionList) {
+                if(j == position) {
+                    root.connectionList[j].changeSourceAndTarget(root, newBubble);
+                    break;
+                }
+            };
         }
+        
+        for(var j in bubble.connectionList) {
+            bubble.connectionList[j].changeColor();
+            bubble.connectionList[j].pan(moveX, moveY);
+        }
+        newBubble.connectionList = bubble.connectionList;  
+        newBubble.addMouseEvents();   
 
         //go recursively through all the bubbles defined
-        changeView(gen, stats, bubble.nodeList, newBubble);   
+        changeView(gen, stats, bubble.nodeList, newBubble, moveX, moveY);   
    
     }   
 }
@@ -364,6 +382,32 @@ var textPosition = function(i, slice, startAngle, width, labelSpace) {
         return [width/2, labelSpace - 10];
     }
 };
+
+var pan = function(x,y) {
+    changeView(gender, analytics, [rootBubble], null, x, y);
+}
+
+var zoom = function(shrink) {
+    var oldMiddleX = middleX;
+    var oldMiddleY = middleY;
+    if(shrink) { 
+        size += 100;
+        middleX = size/2;
+        var moveX = middleX - oldMiddleX;
+        var moveY = moveX - 12;
+    }
+    else { 
+        size -= 100;
+        middleX = size/2;
+        var moveX = -(oldMiddleX - middleX);
+        var moveY = moveX + 12;
+    }
+
+    
+    //middleY = middleY - move;
+    vis.attr("viewBox", "0 0 " + size + " " + size + "");
+    changeView(gender, analytics, [rootBubble], null, moveX, moveY);
+}
 
 //calculate border color from color defined in data
 var calculateColor = function(rgb) {
@@ -503,23 +547,25 @@ var mergeData = function(data1, data2) {
 
 //object that draws lines between source and target bubbles
 function Connection(connection, source, target, stroke, slice, position, len) {
-    var sourceR = source.r;
-    var sourceX = source.x + source.width/2;
-    var sourceY = source.y + source.width/2;
-    var targetR = target.r;
-    var targetX = target.x + target.width/2;
-    var targetY = target.y + target.width/2;
+    this.source = source;
+    this.target = target;
+    this.sourceR = source.r;
+    this.sourceX = source.x + source.width/2;
+    this.sourceY = source.y + source.width/2;
+    this.targetR = target.r;
+    this.targetX = target.x + target.width/2;
+    this.targetY = target.y + target.width/2;
     
     var startAngle = -10;
-    if(source.root !== null) {
+    if(this.source.root !== null) {
         slice = 360 / (len+1);
         startAngle =(((+source.position + 1) * + source.slice + 180) % 360) + 10;
     }
 
-    var x1 = sourceX + Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * sourceR;
-    var y1 = sourceY + Math.sin((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * sourceR;
-    var x2 = targetX + Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * targetR;
-    var y2 = targetY + Math.sin((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * targetR;
+    var x1 = this.sourceX + Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * this.sourceR;
+    var y1 = this.sourceY + Math.sin((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * this.sourceR;
+    var x2 = this.targetX + Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * this.targetR;
+    var y2 = this.targetY + Math.sin((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * this.targetR;
 
     //draw lines
     connection
@@ -531,20 +577,48 @@ function Connection(connection, source, target, stroke, slice, position, len) {
         .style("stroke-width", "3px");
 
     //move nodes above lines
-    target.parent.moveToFront();
+    this.target.parent.moveToFront();
 
-    //move the target x and y
+    //move connection to follow target bubble on bubble expand
     this.move = function() {
-        var newX = (target.x + target.width/2) - Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * targetR;
-        var newY = (target.y + target.width/2) - Math.sin((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * targetR;
+        var newX = (this.target.x + this.target.width/2) - Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * this.targetR;
+        var newY = (this.target.y + this.target.width/2) - Math.sin((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * this.targetR;
         var transition = connection.transition()
-            .duration(5 * (target.chosenLength + targetR))
+            .duration(5 * (this.target.chosenLength + this.targetR))
             .ease("linear")
             .delay(0)
             .attr("x2", newX)
             .attr("y2", newY);
         x2 = newX;
         y2 = newY;
+    }
+
+    //move connection to follow target bubble on drag
+    this.moveTarget = function() {
+        var x = this.target.x;
+        var y = this.target.y;
+        if(this.targetR < 20) {
+            x = this.target.x + 2 * this.targetR;
+            y = this.target.y + 2 * this.targetR;
+        }
+        
+        var newX = (x + this.target.width/2) - Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * this.targetR;
+        var newY = (y + this.target.width/2) - Math.sin((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * this.targetR;
+        console.log(newX);
+
+        connection.attr("x2", newX).attr("y2", newY);
+        x2 = newX;
+        y2 = newY;
+    }
+
+    //move connection to follow source bubble on drag
+    this.moveSource = function() {
+        var newX = this.source.x + this.source.width/2 + Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * this.sourceR;
+        var newY = this.source.y + this.source.width/2 + Math.sin((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * this.sourceR;
+        connection.attr("x1", newX)
+            .attr("y1", newY);
+        x1 = newX;
+        y1 = newY;
     }
 
     //erase lines after a transition efect
@@ -574,11 +648,39 @@ function Connection(connection, source, target, stroke, slice, position, len) {
                   .attr("y2", y2)
     }
 
-    //used to return connections back to former position once the dragging stop 
+    //used to return connections back to former position once the table dragging stop 
     this.stopDrag = function() {
         connection.transition().duration(500).ease("linear")
             .attr("x2", x2)
             .attr("y2", y2)
+    }
+
+    //change connection positiom when moving the whole graph
+    this.pan = function(moveX,moveY) {
+       
+        x1 = x1 + moveX;
+        y1 = y1 + moveY;
+        x2 = x2 + moveX;
+        y2 = y2 + moveY;
+
+
+        connection
+            .attr("x1", x1)
+            .attr("y1", y1)
+            .attr("x2", x2)
+            .attr("y2", y2)
+    }
+
+    //change source and target, used on changeview
+    this.changeSourceAndTarget = function(source, target) {
+        this.source = source;
+        this.target = target;
+        this.sourceR = source.r;
+        this.sourceX = source.x + source.width/2;
+        this.sourceY = source.y + source.width/2;
+        this.targetR = target.r;
+        this.targetX = target.x + target.width/2;
+        this.targetY = target.y + target.width/2;
     }
 }
 
@@ -610,17 +712,20 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
     this.fontSize;
     this.startAngle;
     this.svg;
-
+   
     var circle;
     var text;
     this.label;
+    this.dragging = false;
+    this.dragStopped = false;
 
     this.nodeList = [];
     this.connectionList = [];
     
     var me = this;
-    console.log(this.parent);
 
+    this.handleDrag();
+    
     //on click make bubble bigger and position it in centre - zoom effect  
     this.zoomTransition = function() {
         
@@ -732,21 +837,19 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
 
          //asign click and hover events to root bubble    
         if(this.parent.classed("root")) {
-            this.svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
-            this.svg.on("mouseover", function(){
-                tooltip.attr("text", me.svg.attr("text"));
-                return tooltip.style("visibility", "visible");
-            })
-            this.svg.on("mouseout", function(){return tooltip.style("visibility", "hidden"); })
+            this.addMouseEvents();
         }
 
     }
 
     this.addMouseEvents = function() {
         this.svg.on("mouseover", function(){ 
+            me.parent.moveToFront();
+
+            if(!isTouchDevice)me.svg.call(me.drag);    
             
             //make small bubbles bigger on hover
-            if(me.r < 20) {
+            if(me.r < 20 && !me.dragging) {
                 
                 var newX = me.width/2 + Math.cos((+me.position + 1) * toRadians(+me.slice) + toRadians(+me.startAngle)) * (me.r);
                 var newY = me.width/2 + Math.sin((+me.position + 1) * toRadians(+me.slice) + toRadians(+me.startAngle)) * (me.r);
@@ -785,7 +888,7 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
         this.svg.on("mouseout", function(){
             
             //change bubbles back to original size on mouse out
-            if(me.r < 20) {
+            if(me.r < 20 && !me.dragging) {
                 me.svg
                     .transition().duration(300).ease("linear").delay(0)
                     .attr("width", me.width)
@@ -809,6 +912,7 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
                     .attr("x", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[0])
                     .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[1])
             }
+            me.handleDragStop();
             return tooltip.style("visibility", "hidden");           
         }); 
 
@@ -879,7 +983,11 @@ SizeCircle.prototype.calculateAttributes = function() {
 
 //handle click on bubble
 SizeCircle.prototype.handleClick = function() {
-
+    
+    //click suppressed because of dragging
+    if (d3.event.defaultPrevented) {
+        return;
+    } 
     //check if further connections exist
     var dataAndLinks = findNodesAndLinks(this.id, links, data);
     if(!this.parent.classed("mainpage") && dataAndLinks[1].length == 0) return;
@@ -938,6 +1046,7 @@ SizeCircle.prototype.handleClick = function() {
 
     //click on bubble on mainpage
     if(this.parent.classed("mainpage")) {
+        d3.selectAll(".zooming").style("visibility", "visible");
         document.getElementById("back-button").style.visibility= "visible";
         document.querySelector("input.cmn-toggle + label").style.visibility="visible";
         this.parent.moveToFront();
@@ -986,8 +1095,9 @@ SizeCircle.prototype.handleClick = function() {
 
 //move the bubbles outside the center of the page on click
 SizeCircle.prototype.move = function() {
+    
     var me = this;
-
+    
     //randomly choose line length from a list of possible lengths
     this.chosenLength = this.lengths[Math.floor(Math.random() * this.lengths.length)];
     if (this.root.classes.indexOf("leveltwo") >= 0) {
@@ -1029,6 +1139,68 @@ SizeCircle.prototype.move = function() {
         });             
 }
 
+SizeCircle.prototype.handleDrag = function() {
+    var me = this;
+
+    //set position of table on drag start
+    this.setOrigin = function() {
+        var x = d3.select(this).attr("x");
+        var y = d3.select(this).attr("y");
+        return {"x": x, "y": y}
+    };
+
+    //stop dragging
+    this.dropHandler = function(d) {
+        me.dragging = false;
+        if(me.r < 20) {
+            me.dragStopped = true;
+        }
+    }
+
+    //what happens during drag
+    this.dragmove = function(d) {
+        me.x = d3.event.x;
+        me.y = d3.event.y;
+        
+        d3.select(this).attr("x", me.x).attr("y", me.y);
+       
+
+        //change position of connection to follow the bubble position
+        for(var i in me.connectionList) {
+            me.connectionList[i].moveSource();
+        }
+        if(me.root) {
+            var connection = me.root.connectionList[me.position];
+            connection.moveTarget();
+            
+        }
+    }
+
+    //drag starts
+    this.dragstart = function(d) {
+        me.dragging = true;
+        d3.event.sourceEvent.preventDefault();
+    }
+
+    //define drag
+    this.drag = d3.behavior.drag() 
+        .origin(this.setOrigin)
+        .on("dragstart", this.dragstart)
+        .on("drag", this.dragmove)
+        .on("dragend", this.dropHandler);  
+}
+
+SizeCircle.prototype.handleDragStop = function() {
+    if(this.r < 20 && this.dragStopped) {
+        this.dragStopped = false;
+        this.x = this.x + 2 * this.r;
+        this.y = this.y + 2 * this.r; 
+        this.svg
+            .transition().duration(300).ease("linear").delay(0)
+            .attr("x", this.x)
+            .attr("y", this.y)  
+    }
+}
 //creating radial progress that shows gender distribution of faculties. This class inherits from SizeCircle
 function RadialProgress(tableData, root, parent, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len) { 
     this.parent = parent;
@@ -1073,6 +1245,8 @@ function RadialProgress(tableData, root, parent, x, y, id, size, value, fullName
 
     this.nodeList = [];
     this.connectionList = [];
+
+    this.handleDrag();
 
     //override zoom transition function from sizeCircle. 
     this.zoomTransition = function() {
@@ -1125,13 +1299,10 @@ function RadialProgress(tableData, root, parent, x, y, id, size, value, fullName
         this.svg.on("click", function(d){ 
             me.handleClick();
         });
-    
-        this.svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
-        this.svg.on("mouseover", function(){
-            tooltip.attr("text", me.svg.attr("text"));
-            return tooltip.style("visibility", "visible");
-        })
-        this.svg.on("mouseout", function(){return tooltip.style("visibility", "hidden"); })
+        
+        if(this.parent.classed("root")) {
+            this.addMouseEvents();
+        }
 
         var background = this.svg.append("g").attr("class","component")
             .attr("cursor","pointer")
@@ -1246,9 +1417,12 @@ function RadialProgress(tableData, root, parent, x, y, id, size, value, fullName
 
         //assign hover events to non root bubbles
         this.svg.on("mouseover", function(){
+            
+            me.parent.moveToFront();
+            if(!isTouchDevice)me.svg.call(me.drag); 
 
             //make small bubbles bigger on hover
-            if(me.r < 20) {
+            if(me.r < 20 && !me.dragging) {
                 
                 var newX = me.width/2 + Math.cos((+me.position + 1) * toRadians(+me.slice) + toRadians(me.startAngle)) * (me.r);
                 var newY = me.width/2 + Math.sin((+me.position + 1) * toRadians(+me.slice) + toRadians(me.startAngle)) * (me.r);
@@ -1304,7 +1478,7 @@ function RadialProgress(tableData, root, parent, x, y, id, size, value, fullName
 
         //on mouse out change small bubbles back to original size
         this.svg.on("mouseout", function(){
-            if(me.r < 20) {
+            if(me.r < 20 && !me.dragging) {
                 me.svg
                     .transition().duration(300).ease("linear").delay(0)
                     .attr("width", me.width)
@@ -1345,6 +1519,9 @@ function RadialProgress(tableData, root, parent, x, y, id, size, value, fullName
                     .attr("x", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[0]) 
                     .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[1])   
             }
+
+            me.handleDragStop();
+
             return tooltip.style("visibility", "hidden");           
         }); 
         this.svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
@@ -1378,13 +1555,12 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
     var oldEventY = 0;
 
     //special attributes used only in table class that are used to control dragging, clicking and hover events
+    this.mouseIn = false;
     this.newWidth = 60 * Object.keys(tableData).length + 270;
     this.newHeight = 500 - (2 * (this.labelSpace - this.margin));
     this.newX = x;
     this.newY = y;
     this.fixed = false;
-    this.mouseIn = false;
-    this.dragging = false;
     this.transitionInprogress = false;
     this.big = false;
 
@@ -1397,13 +1573,13 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
     this.label;
 
     //stop dragging
-    function dropHandler(d) {
+    this.dropHandler = function(d) {
         me.dragging = false;
         background.attr("cursor","pointer");
     }
 
     //what happens during drag
-    function dragmove(d) {
+    this.dragmove = function(d) {
 
         //if mouse is in lower right corner, stretch the table
         if(stretch) {
@@ -1435,7 +1611,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
     }
 
     //drag starts
-    function dragstart(d) {
+    this.dragstart = function(d) {
         if(stretch) {
             oldEventX = 0;
             oldEventY = 0;
@@ -1444,19 +1620,12 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
         d3.event.sourceEvent.preventDefault();
     }
 
-    //set position of table on drag start
-    function setOrigin() {
-        var x = d3.select(this).attr("x");
-        var y = d3.select(this).attr("y");
-        return {"x": x, "y": y}
-    }
-
     //define drag
-    var drag = d3.behavior.drag() 
-        .origin(setOrigin)
-        .on("dragstart", dragstart)
-        .on("drag", dragmove)
-        .on("dragend", dropHandler);  
+    this.drag = d3.behavior.drag() 
+        .origin(this.setOrigin)
+        .on("dragstart", this.dragstart)
+        .on("drag", this.dragmove)
+        .on("dragend", this.dropHandler);  
 
     //draw table
     this.draw = function() {
@@ -1614,7 +1783,7 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                 //generate big table and move it to the front 
                 me.generateTable(me.newWidth, me.newHeight, true);
                 me.parent.moveToFront();
-                me.svg.call(drag);    
+                me.svg.call(me.drag);    
             }
 
             tooltip.attr("text", me.svg.attr("text"));

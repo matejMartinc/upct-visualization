@@ -3,7 +3,7 @@ body {
 }
 
 #graph {
-    width: 93%;
+    width: 90%;
     float: left;
 }
 
@@ -98,10 +98,9 @@ body {
 }
 
 input.cmn-toggle + label, input.analytics-toggle + label {
-    margin: 2px;
+    margin: 5px;
     width: 48px;
     height: 48px;
-    margin-top:10px;
     visibility:hidden;
 }
 
@@ -153,7 +152,7 @@ input.cmn-toggle:checked + label:after, input.analytics-toggle:checked + label:a
   transform: rotateY(0);
 }
 .switch {
-    width: 7%;
+    width: 10%;
     float: right;
     margin-top: 150px;
 }
@@ -162,15 +161,42 @@ input.cmn-toggle:checked + label:after, input.analytics-toggle:checked + label:a
     height: 48px;
     width: 48px;
     margin-top: 10px;
-    margin-left: 2px;
+    margin-left: 5px;
     margin-right: 2px;
+    margin-bottom: 10px;
     opacity: 1;
     visibility: hidden;
     filter: alpha(opacity=100);
     transition: all 0.3s ease 0s;
+    cursor: pointer;
 }
 
 #back-button:hover {
     opacity: 0.7;
     filter: alpha(opacity=70);
+}
+
+.compass{
+    fill: #fff;
+    stroke: #000;
+    stroke-width: 1.5;
+}
+
+.button{
+    fill: rgb(63, 127, 205);
+    stroke: #0C2C84;
+    stroke-miterlimit: 6;
+    stroke-linecap: round;
+}
+
+.button:hover{
+    stroke-width: 2;
+}
+.plus-minus{
+    fill: #fff;
+    pointer-events: none;
+}
+
+.zooming {
+    visibility: hidden;
 }
