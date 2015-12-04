@@ -844,7 +844,6 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
 
     this.addMouseEvents = function() {
         this.svg.on("mouseover", function(){ 
-            me.parent.moveToFront();
 
             if(!isTouchDevice)me.svg.call(me.drag);    
             
@@ -1151,19 +1150,20 @@ SizeCircle.prototype.handleDrag = function() {
 
     //stop dragging
     this.dropHandler = function(d) {
-        me.dragging = false;
-        if(me.r < 20) {
+        
+        if(me.r < 20 && me.dragging) {
             me.dragStopped = true;
         }
+        me.dragging = false;
     }
 
     //what happens during drag
     this.dragmove = function(d) {
+        me.dragging = true;
         me.x = d3.event.x;
         me.y = d3.event.y;
         
         d3.select(this).attr("x", me.x).attr("y", me.y);
-       
 
         //change position of connection to follow the bubble position
         for(var i in me.connectionList) {
@@ -1178,7 +1178,7 @@ SizeCircle.prototype.handleDrag = function() {
 
     //drag starts
     this.dragstart = function(d) {
-        me.dragging = true;
+        me.parent.moveToFront();
         d3.event.sourceEvent.preventDefault();
     }
 
@@ -1418,7 +1418,6 @@ function RadialProgress(tableData, root, parent, x, y, id, size, value, fullName
         //assign hover events to non root bubbles
         this.svg.on("mouseover", function(){
             
-            me.parent.moveToFront();
             if(!isTouchDevice)me.svg.call(me.drag); 
 
             //make small bubbles bigger on hover
