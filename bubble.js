@@ -1,5 +1,5 @@
 var middleX = 600;
-var middleY = 430;
+var middleY = 330;
 var size = 1200;
 
 
@@ -87,10 +87,10 @@ var createMainPage = function() {
                     var rootMargin = 3;
                     var rootLabelSpace = 0;
                     var rootR = Math.sqrt(6000);
-                    var studentPlanet = new SizeCircle({}, null, rootGroup1, 510 - rootR, 180 + rootR, "students", 6000, 0, "", "student", rootLabelSpace, rootMargin, data1[0].color , "mainpage", 1, 360, 1);
-                    var employePlanet = new SizeCircle({}, null, rootGroup2, 610, 180 + rootR, "people", 6000, 0, "", "people", rootLabelSpace, rootMargin, data2[0].color, "mainpage", 1, 360, 1);
-                    var researchPlanet = new SizeCircle({}, null, rootGroup3, 610, 440, "research", 6000, 0, "", "research", rootLabelSpace, rootMargin, data3[0].color, "mainpage", 1, 360, 1);
-                    var moneyPlanet = new SizeCircle({}, null, rootGroup4, 510 - rootR, 440, "money", 6000, 0, "", "money", rootLabelSpace, rootMargin, data4[0].color, "mainpage", 1, 360, 1);
+                    var studentPlanet = new SizeCircle({}, null, rootGroup1, 510 - rootR, 80 + rootR, "students", 6000, 0, "", "student", rootLabelSpace, rootMargin, data1[0].color , "mainpage", 1, 360, 1);
+                    var employePlanet = new SizeCircle({}, null, rootGroup2, 610, 80 + rootR, "people", 6000, 0, "", "people", rootLabelSpace, rootMargin, data2[0].color, "mainpage", 1, 360, 1);
+                    var researchPlanet = new SizeCircle({}, null, rootGroup3, 610, 340, "research", 6000, 0, "", "research", rootLabelSpace, rootMargin, data3[0].color, "mainpage", 1, 360, 1);
+                    var moneyPlanet = new SizeCircle({}, null, rootGroup4, 510 - rootR, 340, "money", 6000, 0, "", "money", rootLabelSpace, rootMargin, data4[0].color, "mainpage", 1, 360, 1);
                     studentPlanet.draw();
                     employePlanet.draw();
                     researchPlanet.draw();
@@ -114,7 +114,6 @@ var readData = function(directory) {
                     banners = [];
                     banners.push(bannersData[0].text);
                     banners.push(bannersData[1].text);
-                    //sizeStandard = data[0].size;
                     createMainBubble("root main");
                     createBanner(false);
                 });
@@ -130,7 +129,7 @@ var createMainBubble = function(classes) {
     var rootGroup = vis.selectAll("g.root").data([data[0]]).enter().append("g");
     var rootR = Math.sqrt(data[0].size) * scaleFactor;
     var rootMargin = 3;
-    var rootLabelSpace = 110;
+    var rootLabelSpace = 120;
     var rootX = middleX - rootR - rootMargin - rootLabelSpace;
     var rootY = middleY - rootR - rootMargin - rootLabelSpace;
     var rootId = data[0].id;
@@ -172,7 +171,7 @@ var goBack = function() {
         d3.selectAll(".zooming").style("visibility", "hidden");
         size = 1200;
         middleX = 600;
-        middleY = 430;
+        middleY = 330;
         vis.attr("viewBox", "0 0 " + size + " " + size + "")
         createMainPage();
         createBanner(true);
@@ -236,6 +235,7 @@ var changeView = function(gen, stats, bubbleList, root, moveX, moveY) {
             }
             else {
                 var newBubble = new RadialProgress(bubble.tableData, root, rootGroup, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len);
+                if(moveX != 0 || moveY != 0) newBubble.animate = false;
             }
         }
         newBubble.startAngle = bubble.startAngle;    
@@ -278,7 +278,7 @@ var drawBubbles = function(root) {
     var slice = 360 / bubbleData.length;
     
     var margin = 3;
-    var labelSpace = 110;
+    var labelSpace = 120;
 
     //create bubbles of different sizes for faculties
     for(var i in bubbleData) {
@@ -402,7 +402,7 @@ var zoom = function(shrink) {
         var moveY = moveX + 12;
     }
     middleY = size/2.9;
-    
+
     createBanner(false);
     vis.attr("viewBox", "0 0 " + size + " " + size + "");
     changeView(gender, analytics, [rootBubble], null, moveX, moveY);
@@ -423,8 +423,7 @@ var calculateColor = function(rgb) {
 var createBanner = function(remove) {
     d3.selectAll(".banner").remove();
     if(remove) return;
-    var start = size/4.5;
-288
+    var start = size/8;
     var banner = vis.append("path")
         .classed("banner", true)
             .attr("fill", data[0].color)
@@ -559,7 +558,7 @@ function Connection(connection, source, target, stroke, slice, position, len) {
     var startAngle = -10;
     if(this.source.root !== null) {
         slice = 360 / (len+1);
-        startAngle =(((+source.position + 1) * + source.slice + 180) % 360) + 10;
+        startAngle =(((+source.position + 1) * + source.slice + 180) % 360) + 10 + source.startAngle;
     }
 
     var x1 = this.sourceX + Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * this.sourceR;
@@ -597,15 +596,9 @@ function Connection(connection, source, target, stroke, slice, position, len) {
     this.moveTarget = function() {
         var x = this.target.x;
         var y = this.target.y;
-        if(this.targetR < 20) {
-            x = this.target.x + 2 * this.targetR;
-            y = this.target.y + 2 * this.targetR;
-        }
         
         var newX = (x + this.target.width/2) - Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * this.targetR;
         var newY = (y + this.target.width/2) - Math.sin((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * this.targetR;
-        console.log(newX);
-
         connection.attr("x2", newX).attr("y2", newY);
         x2 = newX;
         y2 = newY;
@@ -615,8 +608,7 @@ function Connection(connection, source, target, stroke, slice, position, len) {
     this.moveSource = function() {
         var newX = this.source.x + this.source.width/2 + Math.cos((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * this.sourceR;
         var newY = this.source.y + this.source.width/2 + Math.sin((+position + 1) * toRadians(+slice) + toRadians(startAngle)) * this.sourceR;
-        connection.attr("x1", newX)
-            .attr("y1", newY);
+        connection.attr("x1", newX).attr("y1", newY);
         x1 = newX;
         y1 = newY;
     }
@@ -717,7 +709,9 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
     var text;
     this.label;
     this.dragging = false;
-    this.dragStopped = false;
+    this.transitionInprogress = false;
+    this.mouseIn = false;
+    this.big = false;
 
     this.nodeList = [];
     this.connectionList = [];
@@ -776,7 +770,11 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
             circle.transition().duration(700).delay(0)
                 .attr("fill", this.color)
                 .attr("stroke", calculateColor(this.color))
-                .attr("stroke-width", "3px");
+                .attr("stroke-width", "3px")
+                .each("end", function() {
+                    me.parent.classed("main", false);
+                    me.classes = me.parent.attr("class");
+                });
         }
 
         else {
@@ -843,51 +841,73 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
     }
 
     this.addMouseEvents = function() {
+        if(!isTouchDevice)me.svg.call(me.drag); 
         this.svg.on("mouseover", function(){ 
 
-            if(!isTouchDevice)me.svg.call(me.drag);    
-            
             //make small bubbles bigger on hover
-            if(me.r < 20 && !me.dragging) {
+            if(!me.mouseIn && me.r < 20 && !me.dragging) {
+                
+                me.mouseIn = true;
+                me.transitionInprogress = true;
                 
                 var newX = me.width/2 + Math.cos((+me.position + 1) * toRadians(+me.slice) + toRadians(+me.startAngle)) * (me.r);
                 var newY = me.width/2 + Math.sin((+me.position + 1) * toRadians(+me.slice) + toRadians(+me.startAngle)) * (me.r);
-                var newWidth = me.width + 4 * me.r;
-                var newHeight = newWidth;
-                var newFontSize = me.r * 1.6;
+                me.width = me.width + 4 * me.r;
+                me.height = me.width;
+                me.r = 2 * me.r;
+                var newFontSize = me.r * 0.8;
+                me.x = me.x - me.r;
+                me.y = me.y - me.r;
+                me.big = true;
+                
                 me.svg
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("width", newWidth)
-                    .attr("height", newHeight)
-                    .attr("x", me.x - 2 * me.r)
-                    .attr("y", me.y - 2 * me.r)
+                    .attr("width", me.width)
+                    .attr("height", me.height)
+                    .attr("x", me.x)
+                    .attr("y", me.y)
                     
                 circle
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("r", 2 * me.r)
-                    .attr("cx", newX + 2 * me.r)
-                    .attr("cy", newY + 2 * me.r)
+                    .attr("r", me.r)
+                    .attr("cx", newX + me.r)
+                    .attr("cy", newY + me.r)
 
                 text
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("x", newX + 2 * me.r)
-                    .attr("y", (newY + 2 * me.r) + newFontSize/3)
+                    .attr("x", newX + me.r)
+                    .attr("y", (newY + me.r) + newFontSize/3)
                     .style("font-size", newFontSize+"px");
 
                 me.label
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("x", newX + 2 * me.r) 
-                    .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, newWidth, me.labelSpace)[1])   
+                    .attr("x", newX + me.r) 
+                    .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[1])  
+                    .each("end", function() {
+                        me.transitionInprogress = false;  
+                    }); 
             }
 
             tooltip.attr("text", me.svg.attr("text"));
             return tooltip.style("visibility", "visible"); 
         });
 
-        this.svg.on("mouseout", function(){
+        this.svg.on("mouseleave", function(){
             
             //change bubbles back to original size on mouse out
-            if(me.r < 20 && !me.dragging) {
+            if(me.mouseIn && me.r/2 < 20 && !me.dragging) {
+                
+                me.transitionInprogress = true;
+                me.mouseIn = false;
+
+                me.r = me.r/2;
+                me.width = me.width - 4 * me.r;
+                me.height = me.width;
+
+                me.x = me.x + 2 * me.r;
+                me.y = me.y + 2 * me.r;
+                me.big = false;
+
                 me.svg
                     .transition().duration(300).ease("linear").delay(0)
                     .attr("width", me.width)
@@ -910,8 +930,11 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
                     .transition().duration(300).ease("linear").delay(0)
                     .attr("x", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[0])
                     .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[1])
+                    .each("end", function() {
+                        me.transitionInprogress = false;  
+                    }); 
             }
-            me.handleDragStop();
+            
             return tooltip.style("visibility", "hidden");           
         }); 
 
@@ -987,6 +1010,7 @@ SizeCircle.prototype.handleClick = function() {
     if (d3.event.defaultPrevented) {
         return;
     } 
+
     //check if further connections exist
     var dataAndLinks = findNodesAndLinks(this.id, links, data);
     if(!this.parent.classed("mainpage") && dataAndLinks[1].length == 0) return;
@@ -1003,6 +1027,7 @@ SizeCircle.prototype.handleClick = function() {
             scaleFactor = Math.sqrt(sizeStandard) / Math.sqrt(this.size);
             this.x = this.root.x;
             this.y = this.root.y;
+            if(this.big) this.r = this.r/2;
             this.r = this.r * scaleFactor;
             this.width =  2 * this.r + 2 * this.margin + 2 * this.labelSpace;
             this.height = this.width;
@@ -1050,7 +1075,7 @@ SizeCircle.prototype.handleClick = function() {
         document.querySelector("input.cmn-toggle + label").style.visibility="visible";
         this.parent.moveToFront();
         this.x = 600 - this.r - this.margin;
-        this.y = 430 - this.r - this.margin;
+        this.y = 330 - this.r - this.margin;
         var id = this.id;
 
         vis.selectAll("circle").transition().duration(1000).delay(0)
@@ -1111,7 +1136,7 @@ SizeCircle.prototype.move = function() {
     //second level roots
     if(this.root.root !== null) {
         this.slice = 360 / (this.len+1);
-        this.startAngle =(((+this.root.position + 1) * +this.root.slice + 180) % 360) + 10;
+        this.startAngle =(((+this.root.position + 1) * +this.root.slice + 180) % 360) + 10 + this.root.startAngle;
     }
 
     //calculate new x and y
@@ -1159,6 +1184,8 @@ SizeCircle.prototype.handleDrag = function() {
 
     //what happens during drag
     this.dragmove = function(d) {
+        if(me.transitionInprogress) return;
+        console.log("drag")
         me.dragging = true;
         me.x = d3.event.x;
         me.y = d3.event.y;
@@ -1171,14 +1198,13 @@ SizeCircle.prototype.handleDrag = function() {
         }
         if(me.root) {
             var connection = me.root.connectionList[me.position];
-            connection.moveTarget();
-            
+            connection.moveTarget();   
         }
+        me.parent.moveToFront();    
     }
 
     //drag starts
     this.dragstart = function(d) {
-        me.parent.moveToFront();
         d3.event.sourceEvent.preventDefault();
     }
 
@@ -1190,17 +1216,6 @@ SizeCircle.prototype.handleDrag = function() {
         .on("dragend", this.dropHandler);  
 }
 
-SizeCircle.prototype.handleDragStop = function() {
-    if(this.r < 20 && this.dragStopped) {
-        this.dragStopped = false;
-        this.x = this.x + 2 * this.r;
-        this.y = this.y + 2 * this.r; 
-        this.svg
-            .transition().duration(300).ease("linear").delay(0)
-            .attr("x", this.x)
-            .attr("y", this.y)  
-    }
-}
 //creating radial progress that shows gender distribution of faculties. This class inherits from SizeCircle
 function RadialProgress(tableData, root, parent, x, y, id, size, value, fullName, labelSpanish, labelSpace, margin, color, classes, position, slice, len) { 
     this.parent = parent;
@@ -1236,6 +1251,7 @@ function RadialProgress(tableData, root, parent, x, y, id, size, value, fullName
     
     arc.outerRadius(this.radialWidth/2);
     arc.innerRadius(this.radialWidth/2 * .85);
+    this.animate = true;
 
     var rect;
     var wholePath;
@@ -1383,13 +1399,20 @@ function RadialProgress(tableData, root, parent, x, y, id, size, value, fullName
             endAngle=endAngle * Math.PI/180;
 
             path.datum(endAngle);
-            path.transition().duration(duration)
-                .attrTween("d", arcTween);
+            if(me.animate) {
+                path.transition().duration(duration)
+                    .attrTween("d", arcTween);
 
-            proportion.datum(Math.round(ratio*100));
-            proportion.transition().duration(duration)
-                .tween("text",labelTween);
-
+                proportion.datum(Math.round(ratio*100));
+                proportion.transition().duration(duration)
+                    .tween("text",labelTween);
+            }
+            else {
+                proportion.text( Math.round(ratio * 100) + "%");
+                arc.endAngle(endAngle);
+                path.attr("d", arc);
+                animate = true;
+            }
         }
     }
 
@@ -1414,61 +1437,71 @@ function RadialProgress(tableData, root, parent, x, y, id, size, value, fullName
 
     //overide addMouseEvents from sizecircle
     this.addMouseEvents = function() {
+        if(!isTouchDevice)me.svg.call(me.drag); 
 
         //assign hover events to non root bubbles
         this.svg.on("mouseover", function(){
-            
-            if(!isTouchDevice)me.svg.call(me.drag); 
 
             //make small bubbles bigger on hover
-            if(me.r < 20 && !me.dragging) {
+            if(me.r < 20 && !me.dragging && !me.mouseIn) {
+                
+                me.mouseIn = true;
+                me.transitionInprogress = true;
                 
                 var newX = me.width/2 + Math.cos((+me.position + 1) * toRadians(+me.slice) + toRadians(me.startAngle)) * (me.r);
                 var newY = me.width/2 + Math.sin((+me.position + 1) * toRadians(+me.slice) + toRadians(me.startAngle)) * (me.r);
-                var newWidth = me.width + 4 * me.r;
-                var newHeight = newWidth;
+                me.r = 2 * me.r;
+                me.radialWidth = 2 * me.radialWidth;
+                me.x = me.x - me.r;
+                me.y = me.y - me.r;
+                me.width = me.width + 2 * me.r;
+                me.height = me.width;
+
                 me.svg
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("width", newWidth)
-                    .attr("height", newHeight)
-                    .attr("x", me.x - 2 * me.r)
-                    .attr("y", me.y - 2 * me.r)
+                    .attr("width", me.width)
+                    .attr("height", me.height)
+                    .attr("x", me.x)
+                    .attr("y", me.y)
                     
                 rect
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("width", 2 * me.radialWidth)
-                    .attr("height", 2 * me.radialWidth)
+                    .attr("width", me.radialWidth)
+                    .attr("height", me.radialWidth)
                     .attr("x", newX)
                     .attr("y", newY)
 
                 arc
-                    .outerRadius(me.radialWidth)
-                    .innerRadius(me.radialWidth * .85);
+                    .outerRadius(me.radialWidth/2)
+                    .innerRadius(me.radialWidth/2 * .85);
                 
                 arc.endAngle(360 * (Math.PI/180))
 
                 wholePath 
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("transform", "translate(" + (newX + 2 * me.r) + "," + (newY + 2 * me.r) + ")")
+                    .attr("transform", "translate(" + (newX + me.r) + "," + (newY + me.r) + ")")
                     .attr("d", arc)
 
                 arc.endAngle(currentArc);
 
                 path
                     .transition().duration(300).ease("linear").delay(0) 
-                    .attr("transform", "translate(" + (newX + 2 * me.r) + "," + (newY + 2 * me.r) + ")")
+                    .attr("transform", "translate(" + (newX + me.r) + "," + (newY + me.r) + ")")
                     .attr("d", arc)
                    
                 proportion
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("x", newX + 2 * me.r)
-                    .attr("y", (newY + 2 * me.r) + (2 * me.fontSize/3))
+                    .attr("x", newX + me.r)
+                    .attr("y", (newY + me.r) + (2 * me.fontSize/3))
                     .style("font-size", 2 * me.fontSize +"px");
 
                 me.label
                     .transition().duration(300).ease("linear").delay(0)
-                    .attr("x", newX + 2 * me.r) 
-                    .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, newWidth, me.labelSpace)[1])   
+                    .attr("x", newX + me.r) 
+                    .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[1])
+                    .each("end", function() {
+                        me.transitionInprogress = false;
+                    });   
             }
 
             tooltip.attr("text", me.svg.attr("text"));
@@ -1476,12 +1509,23 @@ function RadialProgress(tableData, root, parent, x, y, id, size, value, fullName
         });
 
         //on mouse out change small bubbles back to original size
-        this.svg.on("mouseout", function(){
-            if(me.r < 20 && !me.dragging) {
+        this.svg.on("mouseleave", function(){
+            if(me.r/2 < 20 && !me.dragging && me.mouseIn) {
+                
+                me.mouseIn = false;
+                me.transitionInprogress = true;
+
+                me.radialWidth = me.radialWidth/2;
+                me.x = me.x + me.r;
+                me.y = me.y + me.r;
+                me.width = me.width - 2 * me.r;
+                me.height = me.width;
+                me.r = me.r/2;
+
                 me.svg
                     .transition().duration(300).ease("linear").delay(0)
                     .attr("width", me.width)
-                    .attr("height", me.width)
+                    .attr("height", me.height)
                     .attr("x", me.x)
                     .attr("y", me.y)  
                 rect
@@ -1516,10 +1560,11 @@ function RadialProgress(tableData, root, parent, x, y, id, size, value, fullName
                 me.label
                     .transition().duration(300).ease("linear").delay(0)
                     .attr("x", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[0]) 
-                    .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[1])   
+                    .attr("y", textPosition(+me.position, +me.slice, +me.startAngle, me.width, me.labelSpace)[1])
+                    .each("end", function() {
+                        me.transitionInprogress = false;
+                    });   
             }
-
-            me.handleDragStop();
 
             return tooltip.style("visibility", "hidden");           
         }); 
@@ -1560,8 +1605,6 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
     this.newX = x;
     this.newY = y;
     this.fixed = false;
-    this.transitionInprogress = false;
-    this.big = false;
 
     this.nodeList = [];
     this.connectionList = [];
@@ -1666,13 +1709,6 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
             .attr("height", this.radialWidth);
 
         //asign click, drag and hover events to tables
-        this.svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
-        this.svg.on("mouseover", function(){
-            tooltip.attr("text", me.svg.attr("text"));
-            return tooltip.style("visibility", "visible");
-        })
-        this.svg.on("mouseout", function(){return tooltip.style("visibility", "hidden"); }); 
-
         this.svg.on("click", function(d){ 
             
             //click suppressed
@@ -1729,6 +1765,8 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
 
     this.addMouseEvents = function() {
 
+        me.svg.call(me.drag);    
+
         //assign hover events to tables
         this.svg.on("mouseover", function(){
             
@@ -1782,7 +1820,6 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
                 //generate big table and move it to the front 
                 me.generateTable(me.newWidth, me.newHeight, true);
                 me.parent.moveToFront();
-                me.svg.call(me.drag);    
             }
 
             tooltip.attr("text", me.svg.attr("text"));
@@ -2021,22 +2058,20 @@ function Table(tableData, root, parent, x, y, id, size, value, fullName, labelSp
             }
         } 
 
-        //add this only if table is big
-        if(big) {
-            var boxText = background.append("text")
-                .attr("class", "tableBox label")
-                .style('fill', this.color)
-                .style('font-size', boxWidth/5)
-                .style("text-anchor", "middle")
-                .attr('x', tableMargin + tableWidth/2)
-                .attr('y', tableHeight + tableMargin + boxWidth/4)
-                .text("*El guión “-” indica que no procede el cálculo del indicador para ese año.");
+        var boxText = background.append("text")
+            .attr("class", "tableBox label")
+            .style('fill', this.color)
+            .style('font-size', boxWidth/5)
+            .style("text-anchor", "middle")
+            .attr('x', tableMargin + tableWidth/2)
+            .attr('y', tableHeight + tableMargin + boxWidth/4)
+            .text("*El guión “-” indica que no procede el cálculo del indicador para ese año.");
 
-            this.label
-                .transition().duration(300).ease("linear").delay(0)
-                .attr("x", textPosition(+me.position, +me.slice, +me.startAngle, me.newWidth + 2* (this.labelSpace + this.margin), me.labelSpace)[0]) 
-                .attr("y", me.labelSpace - 10) 
-        }
+        this.label
+            .transition().duration(300).ease("linear").delay(0)
+            .attr("x", textPosition(+me.position, +me.slice, +me.startAngle, me.newWidth + 2* (this.labelSpace + this.margin), me.labelSpace)[0]) 
+            .attr("y", me.labelSpace - 10) 
+        
 
         //draw rectangle with rounded upper corners
         function upperRoundedRect(x, y, width, height, radius) {
