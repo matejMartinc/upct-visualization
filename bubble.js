@@ -1,3 +1,4 @@
+//define middle position
 var middleX = 600;
 var middleY = 330;
 var size = 1200;
@@ -12,6 +13,7 @@ var vis = d3.select("#graph")
     //class to make it responsive
     .classed("svg-content-responsive", true);
 
+//global attributes
 var gender = false;
 var analytics = false;
 var tableCounter = 0;
@@ -40,6 +42,8 @@ document.addEventListener("DOMContentLoaded", function (event) {
     } else {
         gender = false;   
     }
+
+    //listens for clicks on gender button
     _selector.addEventListener('change', function (event) {
         document.querySelector('input[id=analytics-toggle]').checked = false;
         analytics = false;
@@ -58,6 +62,8 @@ document.addEventListener("DOMContentLoaded", function (event) {
     } else {
         analytics = false;
     }
+
+    //listens for click on table button
     _selectorTable.addEventListener('change', function (event) {
         if (_selectorTable.checked) {
            document.querySelector('input[id=cmn-toggle]').checked = false;
@@ -72,7 +78,7 @@ document.addEventListener("DOMContentLoaded", function (event) {
     });
 });
 
-//function that draws main page
+//function that draws main page - four bubbles with fixed coordinates, no drag or change view here
 var createMainPage = function() {
 
     scaleFactor = 1;  
@@ -101,7 +107,7 @@ var createMainPage = function() {
     });      
 } 
 
-//read data and create root bubble
+//read data and create root bubble - execute this on click on bubble on main page 
 var readData = function(directory) {
     d3.csv("./data/"+directory+"/nodes_info.csv", function(data1) {
         d3.csv("./data/"+directory+"/nodes_figures.csv", function(data2) {
@@ -243,6 +249,8 @@ var changeView = function(gen, stats, bubbleList, root, moveX, moveY) {
         if(bubble.root === null) {
             rootBubble = newBubble;   
         }
+
+        //update source and target of connection between bubbles
         else {
             root.nodeList.push(newBubble);
             for(var j in root.connectionList) {
@@ -383,10 +391,13 @@ var textPosition = function(i, slice, startAngle, width, labelSpace) {
     }
 };
 
+//used when arrows in compas are clicked
 var pan = function(x,y) {
     changeView(gender, analytics, [rootBubble], null, x, y);
 }
 
+//used when + and - buttons in compas are clicked - changes resolution of visualization and 
+//changes bubbles position so they stay in the middle while zooming
 var zoom = function(shrink) {
     var oldMiddleX = middleX;
     if(shrink) { 
@@ -647,7 +658,7 @@ function Connection(connection, source, target, stroke, slice, position, len) {
             .attr("y2", y2)
     }
 
-    //change connection positiom when moving the whole graph
+    //change connection position when moving the whole graph
     this.pan = function(moveX,moveY) {
        
         x1 = x1 + moveX;
@@ -844,7 +855,7 @@ function SizeCircle(tableData, root, parent, x, y, id, size, value, fullName, la
         if(!isTouchDevice)me.svg.call(me.drag); 
         this.svg.on("mouseover", function(){ 
 
-            //make small bubbles bigger on hover
+            //make small bubbles bigger on hover - drag handling for small bubbles also
             if(!me.mouseIn && me.r < 20 && !me.dragging) {
                 
                 me.mouseIn = true;
@@ -1442,7 +1453,7 @@ function RadialProgress(tableData, root, parent, x, y, id, size, value, fullName
         //assign hover events to non root bubbles
         this.svg.on("mouseover", function(){
 
-            //make small bubbles bigger on hover
+            //make small bubbles bigger on hover - handle drag for small bubbles also
             if(me.r < 20 && !me.dragging && !me.mouseIn) {
                 
                 me.mouseIn = true;
@@ -1569,7 +1580,6 @@ function RadialProgress(tableData, root, parent, x, y, id, size, value, fullName
             return tooltip.style("visibility", "hidden");           
         }); 
         this.svg.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY) + 3 + "px").style("left",(d3.event.pageX) - 15 + "px");})
- 
     }
 }
 
