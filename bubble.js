@@ -423,7 +423,7 @@ var calculateColor = function(rgb) {
 var createBanner = function(remove) {
     d3.selectAll(".banner").remove();
     if(remove) return;
-    var start = size/8;
+    var start = size/6;
     var banner = vis.append("path")
         .classed("banner", true)
             .attr("fill", data[0].color)
